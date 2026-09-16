@@ -22,7 +22,6 @@
     -webkit-tap-highlight-color:transparent;
   }
 
-  /* Default (Landscape) Stage */
   .stage{
     position:relative; width:100vw; height:100vh; overflow:hidden; background:#241447;
     max-width: 1280px; max-height: 720px; aspect-ratio: 16/9; box-shadow:0 0 40px rgba(0,0,0,.8);
@@ -59,6 +58,7 @@
   button.btn.danger { background:var(--hot); color:white; }
   button.btn.secondary { background:transparent; color:var(--ink); border:2px solid var(--edge); box-shadow:none; }
   button.btn.secondary:hover { background:rgba(255,255,255,0.1); }
+  button.btn:disabled { opacity:0.5; filter:grayscale(1); cursor:not-allowed; transform:none; box-shadow:0 6px 0 rgba(0,0,0,0.3); }
   
   .row { display:flex; gap:12px; width:100%; align-items:center; justify-content:space-between; }
   .col { display:flex; flex-direction:column; gap:8px; width:100%; }
@@ -72,7 +72,7 @@
   input[type="range"] { accent-color: var(--cyan); width: 100%; }
   .key-bind { background:rgba(255,255,255,.1); padding:6px 12px; border-radius:8px; cursor:pointer; font-family:monospace; }
   
-  /* Touch Controls (Default Landscape) */
+  /* Touch Controls */
   #touch-controls { position:fixed; inset:0; z-index:10; display:none; pointer-events:none; }
   .v-stick-zone { position:absolute; bottom:40px; left:40px; width:140px; height:140px; pointer-events:auto; touch-action:none; }
   .v-stick-bg { position:absolute; inset:0; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.15); }
@@ -83,39 +83,19 @@
   #btn-run { bottom:125px; right:115px; }
   #btn-gp-disc { position:absolute; top:20px; left:50%; transform:translateX(-50%); width:auto; display:none; pointer-events:auto; }
 
-  /* Banners & HUD */
   #banner { position:absolute; top:40%; left:0; width:100%; text-align:center; font-family:var(--display); font-size:60px; font-weight:800; color:var(--amber); text-shadow:0 4px 15px rgba(0,0,0,0.8); pointer-events:none; opacity:0; transition:opacity 0.2s; z-index:5; }
   .char-preview { width:60px; height:60px; border-radius:50%; margin:0 auto; border:3px solid var(--edge); }
-
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 4px; }
 
-  /* 📱 NEW: PORTRAIT MOBILE LAYOUT 📱 */
   @media (orientation: portrait) {
-    body { 
-      justify-content: flex-start; 
-      padding-top: max(env(safe-area-inset-top), 4vh); 
-    }
-    
-    /* Dock the game to the top and fit exactly */
-    .stage {
-      width: 100vw !important;
-      height: calc(100vw * 9 / 16) !important;
-      max-height: none !important;
-      border-radius: 0;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-      flex-shrink: 0;
-    }
-
-    /* Move controls to the bottom half and arrange like a Gameboy */
+    body { justify-content: flex-start; padding-top: max(env(safe-area-inset-top), 4vh); }
+    .stage { width: 100vw !important; height: calc(100vw * 9 / 16) !important; max-height: none !important; border-radius: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.6); flex-shrink: 0; }
     .v-stick-zone { bottom: 12vh; left: 8vw; width: 160px; height: 160px; }
     .v-stick-knob { width: 70px; height: 70px; top: 45px; left: 45px; }
-    
     .v-btn { width: 85px; height: 85px; font-size: 17px; }
     #btn-jump { bottom: 12vh; right: 8vw; }
     #btn-run { bottom: 26vh; right: 28vw; }
-    
-    /* Move disconnect button out of the way */
     #btn-gp-disc { top: auto; bottom: 3vh; }
   }
 </style>
@@ -127,7 +107,6 @@
   <div id="banner">ROUND 1</div>
 </div>
 
-<!-- Touch Controls outside of stage for perfect scaling -->
 <div id="touch-controls">
   <button id="btn-gp-disc" class="btn danger" onclick="disconnectGamepad()">Disconnect Gamepad</button>
   <div class="v-stick-zone" id="joystick">
@@ -183,11 +162,11 @@
   <!-- View: Multiplayer Connect -->
   <div class="panel view" id="v-mp" style="display:none;">
     <h2>Multiplayer</h2>
-    <button class="btn primary" onclick="hostGame()">Host Room</button>
+    <button class="btn primary" id="btn-host" onclick="hostGame()">Host Room</button>
     <div style="border-top:1px solid var(--edge); margin:10px 0;"></div>
     <input type="text" id="room-code" placeholder="ENTER 4-LETTER CODE" maxlength="4">
-    <button class="btn primary" onclick="joinGame()">Join Room</button>
-    <p id="mp-status" style="color:var(--hot); font-weight:bold; margin:0;"></p>
+    <button class="btn primary" id="btn-join" onclick="joinGame()">Join Room</button>
+    <p id="mp-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
@@ -196,8 +175,8 @@
     <h2>Virtual Gamepad</h2>
     <p style="font-size:14px; color:var(--ink-dim); text-align:left;">Host a multiplayer room on your PC, then enter the code here to use this phone as the controller.</p>
     <input type="text" id="gamepad-code" placeholder="ENTER ROOM CODE" maxlength="4">
-    <button class="btn primary" onclick="connectGamepad()">Connect Controller</button>
-    <p id="gp-status" style="color:var(--hot); font-weight:bold; margin:0;"></p>
+    <button class="btn primary" id="btn-connect-gp" onclick="connectGamepad()">Connect Controller</button>
+    <p id="gp-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
@@ -208,8 +187,8 @@
     <div id="lobby-char-select" class="col" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;">
       <p style="margin:0; font-size:14px;">Your Color: <span id="lobby-my-color">Cyan</span></p>
       <div class="row">
-        <button class="btn secondary" style="padding:4px;" onclick="cycleChar(-1); updateLobbyColor()">◀</button>
-        <button class="btn secondary" style="padding:4px;" onclick="cycleChar(1); updateLobbyColor()">▶</button>
+        <button class="btn secondary" style="padding:4px;" onclick="cycleChar(-1)">◀</button>
+        <button class="btn secondary" style="padding:4px;" onclick="cycleChar(1)">▶</button>
       </div>
     </div>
     <button class="btn primary" id="btn-start-mp" onclick="startMPGame()" style="display:none;">Start Match</button>
@@ -223,10 +202,8 @@
     <div class="col">
       <label>Music Volume <span id="lbl-mus">50%</span></label>
       <input type="range" id="cfg-mus" min="0" max="100" value="50">
-      
       <label>SFX Volume <span id="lbl-sfx">80%</span></label>
       <input type="range" id="cfg-sfx" min="0" max="100" value="80">
-
       <label>Screen Shake <input type="checkbox" id="cfg-shake" checked></label>
     </div>
     <div class="col" style="margin-top:10px;">
@@ -269,7 +246,6 @@
 (() => {
   "use strict";
 
-  // ---------- Config & Local Storage ----------
   let CFG = { mus: 0.5, sfx: 0.8, shake: true, keys: { L:'a', R:'d', J:'w', S:'shift' }, highscore: 0 };
   try { const s = localStorage.getItem('bombtag_cfg'); if(s) CFG = {...CFG, ...JSON.parse(s)}; } catch(e){}
   function saveSettings() {
@@ -297,7 +273,6 @@
     el.innerText = 'PRESS KEY...'; el.style.color = 'var(--cyan)';
   };
 
-  // ---------- UI Navigation ----------
   let uiContext = {};
   window.nav = (id, ctx) => {
     if (ctx) uiContext = ctx;
@@ -305,12 +280,7 @@
     document.getElementById(id).style.display = 'flex';
   };
   
-  const PALETTE = [
-    {name:'Cyan', body:'#38E1FF', dark:'#128FB8', head:'#BDF4FF'},
-    {name:'Rosa', body:'#FF5DA2', dark:'#B32C68', head:'#FFD2E6'},
-    {name:'Pip',  body:'#FFC53D', dark:'#B7801A', head:'#FFF0C4'},
-    {name:'Moss', body:'#7CFF6B', dark:'#3E9A34', head:'#DCFFD6'}
-  ];
+  const PALETTE = [{name:'Cyan', body:'#38E1FF', dark:'#128FB8', head:'#BDF4FF'}, {name:'Rosa', body:'#FF5DA2', dark:'#B32C68', head:'#FFD2E6'}, {name:'Pip', body:'#FFC53D', dark:'#B7801A', head:'#FFF0C4'}, {name:'Moss', body:'#7CFF6B', dark:'#3E9A34', head:'#DCFFD6'}];
   let myColorIdx = 0;
   window.cycleChar = (dir) => {
     myColorIdx = (myColorIdx + dir + PALETTE.length) % PALETTE.length;
@@ -320,7 +290,6 @@
   };
   window.confirmChar = () => { nav(uiContext.next || 'v-main'); };
 
-  // ---------- Audio System ----------
   const SND = (() => {
     let ac = null, musBus = null, sfxBus = null, noiseBuf = null;
     let awake = false;
@@ -336,9 +305,7 @@
       return true;
     }
     function updateVols() {
-      if(!ac) return;
-      musBus.gain.value = CFG.mus * 0.4;
-      sfxBus.gain.value = CFG.sfx * 0.9;
+      if(!ac) return; musBus.gain.value = CFG.mus * 0.4; sfxBus.gain.value = CFG.sfx * 0.9;
     }
     function wake(){ if (!ac && !build()) return; if (ac.state === 'suspended') ac.resume(); awake = true; }
     const live = () => !!ac && awake;
@@ -349,10 +316,8 @@
       osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(o.f0, t + (o.at || 0));
       if (o.f1 && o.f1 !== o.f0) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f1), t + (o.at || 0) + dur);
       const g = ac.createGain(); const t0 = t + (o.at || 0);
-      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(.0005, o.vol), t0 + (o.atk || .006));
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.connect(g);
-      if(ac.createStereoPanner){ const p=ac.createStereoPanner(); p.pan.value=o.pan||0; g.connect(p); p.connect(o.bus||sfxBus); } else g.connect(o.bus||sfxBus);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(.0005, o.vol), t0 + (o.atk || .006)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); if(ac.createStereoPanner){ const p=ac.createStereoPanner(); p.pan.value=o.pan||0; g.connect(p); p.connect(o.bus||sfxBus); } else g.connect(o.bus||sfxBus);
       osc.start(t0); osc.stop(t0 + dur + .03);
     }
     function hiss(o){
@@ -361,10 +326,8 @@
       const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true; s.playbackRate.value = .7 + Math.random() * .6;
       const f = ac.createBiquadFilter(); f.type = o.type || 'bandpass'; f.Q.value = o.q || 1;
       f.frequency.setValueAtTime(o.f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(40, o.f1 || o.f0), t + dur);
-      const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(Math.max(.0005, o.vol), t + (o.atk || .005)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      s.connect(f); f.connect(g);
-      if(ac.createStereoPanner){ const p=ac.createStereoPanner(); p.pan.value=o.pan||0; g.connect(p); p.connect(o.bus||sfxBus); } else g.connect(o.bus||sfxBus);
+      const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(.0005, o.vol), t + (o.atk || .005)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); if(ac.createStereoPanner){ const p=ac.createStereoPanner(); p.pan.value=o.pan||0; g.connect(p); p.connect(o.bus||sfxBus); } else g.connect(o.bus||sfxBus);
       s.start(t); s.stop(t + dur + .05);
     }
 
@@ -373,14 +336,12 @@
       if (!live() || sizSrc || CFG.sfx <= 0) return;
       sizSrc = ac.createBufferSource(); sizSrc.buffer = noiseBuf; sizSrc.loop = true;
       const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3400; f.Q.value = .7;
-      sizGain = ac.createGain(); sizGain.gain.value = 0;
-      sizSrc.connect(f); f.connect(sizGain); sizGain.connect(sfxBus); sizSrc.start();
+      sizGain = ac.createGain(); sizGain.gain.value = 0; sizSrc.connect(f); f.connect(sizGain); sizGain.connect(sfxBus); sizSrc.start();
     }
     function sizzleSet(level){ if (sizGain && ac) sizGain.gain.setTargetAtTime(level, ac.currentTime, .07); }
     function sizzleOff(){
       if (!sizSrc || !ac) return; const s = sizSrc, g = sizGain;
-      g.gain.setTargetAtTime(0, ac.currentTime, .04); sizSrc = null; sizGain = null;
-      setTimeout(() => { try { s.stop(); } catch (e) {} }, 400);
+      g.gain.setTargetAtTime(0, ac.currentTime, .04); sizSrc = null; sizGain = null; setTimeout(() => { try { s.stop(); } catch (e) {} }, 400);
     }
 
     let musPlaying = false, nextNote = 0, step = 0, intensity = 0;
@@ -411,14 +372,12 @@
     };
   })();
 
-  // ---------- Input (Keyboard + Touch) ----------
   const keys = Object.create(null);
   const touchState = { L:false, R:false, run:false, jump:false, drop:false };
   let usingTouch = false;
 
   addEventListener('keydown', e => {
-    SND.wake();
-    const k = e.key.toLowerCase();
+    SND.wake(); const k = e.key.toLowerCase();
     if (bindingKey) {
       if(k!=='escape') { CFG.keys[bindingKey] = k; saveSettings(); document.getElementById(`bind-${bindingKey}`).innerText = k.toUpperCase(); }
       bindingKey = null; document.getElementById(`bind-${bindingKey}`).style.color = 'var(--ink-dim)'; e.preventDefault(); return;
@@ -433,7 +392,6 @@
   addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
   addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
-  // Touch Logic
   const tc = document.getElementById('touch-controls');
   const knob = document.getElementById('joy-knob');
   let joyID = null, joyOrigin = {x:0, y:0};
@@ -449,8 +407,6 @@
       else if (t.target.id === 'btn-run') touchState.run = true;
       else if (t.target.closest('#joystick') && joyID === null) {
         joyID = t.identifier;
-        
-        // Dynamically calculate center so it works perfectly in landscape & portrait
         const rect = document.getElementById('joystick').getBoundingClientRect();
         joyOrigin = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 }; 
         updateJoy(t.clientX, t.clientY);
@@ -482,7 +438,7 @@
   function updateJoy(x, y) {
     let dx = x - joyOrigin.x, dy = y - joyOrigin.y;
     const dist = Math.hypot(dx, dy);
-    if(dist > 40) { dx = (dx/dist)*40; dy = (dy/dist)*40; } // max drag dist 40px
+    if(dist > 40) { dx = (dx/dist)*40; dy = (dy/dist)*40; }
     knob.style.transform = `translate(${dx}px, ${dy}px)`;
     touchState.L = dx < -15; touchState.R = dx > 15; touchState.drop = dy > 25;
   }
@@ -496,15 +452,11 @@
       drop: keys['s'] || keys['arrowdown'] || touchState.drop
     };
     if (remoteInput) {
-      return {
-         L: kb.L || remoteInput.L, R: kb.R || remoteInput.R,
-         run: kb.run || remoteInput.run, jump: kb.jump || remoteInput.jump, drop: kb.drop || remoteInput.drop
-      };
+      return { L: kb.L || remoteInput.L, R: kb.R || remoteInput.R, run: kb.run || remoteInput.run, jump: kb.jump || remoteInput.jump, drop: kb.drop || remoteInput.drop };
     }
     return kb;
   }
 
-  // ---------- Game World & Physics ----------
   const W = 960, H = 540, HW = 13, BODY_H = 70;
   const canvas = document.getElementById('game'); const ctx = canvas.getContext('2d', {alpha:false});
   
@@ -524,7 +476,6 @@
 
   let mode = 'menu', round = 1, boomTimer = 0, shake = 0, slowmo = 1;
   let ents = [], bomb = null, parts = [], flashes = [];
-  
   let matchStats = { tags: [0,0,0,0], heldTime: [0,0,0,0] };
 
   let isNetwork = false, isHost = false, peer = null, myIndex = 0;
@@ -540,18 +491,15 @@
     return {
       i, x, y, vx:0, vy:0, onGround:false, facing:1, alive:true, isAI, statsId: i,
       name: p.name, body: p.body, dark: p.dark, head: p.head, phase: Math.random()*6,
-      state:'idle', dropCd:0, passCd:0, immuneCd:0, think:0, wantDir:0, wantJump:false, wantRun:false, wanderX:x, coyote:0, jumpBuf:0,
-      renderX: x, renderY: y
+      state:'idle', dropCd:0, passCd:0, immuneCd:0, think:0, wantDir:0, wantJump:false, wantRun:false, wanderX:x, coyote:0, jumpBuf:0, renderX: x, renderY: y
     };
   }
 
   function resetGame() {
-    const mapIdx = parseInt(document.getElementById('set-map').value);
-    currentMap = MAPS[mapIdx];
+    const mapIdx = parseInt(document.getElementById('set-map').value); currentMap = MAPS[mapIdx];
     diffSetting = parseInt(document.getElementById('set-diff').value);
     
-    ents = [];
-    const spawns = [[160,400], [800,400], [480,200], [480,400]];
+    ents = []; const spawns = [[160,400], [800,400], [480,200], [480,400]];
     
     if (isNetwork) {
       const active = [0, ...hostConnections.map(c => c.index)];
@@ -570,8 +518,7 @@
   }
 
   function startRound() {
-    const left = ents.filter(e => e.alive);
-    if(left.length === 0) return;
+    const left = ents.filter(e => e.alive); if(left.length === 0) return;
     const pick = left[Math.floor(Math.random() * left.length)];
     const maxTime = Math.max(4.5, 12 - 1.6 * (round - 1));
     bomb = { holder: pick.i, time: maxTime, max: maxTime, tickAcc: 0 };
@@ -579,8 +526,7 @@
     
     mode = 'banner'; boomTimer = 1.8;
     const b = document.getElementById('banner');
-    b.innerText = `ROUND ${round}`; b.style.opacity = 1;
-    SND.banner();
+    b.innerText = `ROUND ${round}`; b.style.opacity = 1; SND.banner();
   }
 
   function decideAI(e){
@@ -630,8 +576,8 @@
       puff(e.x, e.y, 6, e.body, 60); SND.jump(pan(e), e.i === myIndex ? 1 : .4);
     }
     e.vy = Math.min(e.vy + GRAV * dt, 1250);
-
     const prevFeet = e.y; e.x += e.vx * dt; e.y += e.vy * dt;
+
     if (e.x < HW + 6){ e.x = HW + 6; e.vx = 0; } if (e.x > W - HW - 6){ e.x = W - HW - 6; e.vx = 0; }
 
     e.onGround = false; e.dropCd = Math.max(0, e.dropCd - dt);
@@ -649,12 +595,10 @@
 
     const sp = Math.abs(e.vx);
     if (!e.onGround) e.state = e.vy < -60 ? 'jump' : 'fall'; else if (sp > 215) e.state = 'run'; else if (sp > 26) e.state = 'walk'; else e.state = 'idle';
-    
     e.phase += dt * (e.state === 'idle' ? 2.2 : (e.state === 'run' || e.state === 'walk') ? 1.6 + sp * 0.048 : 1.2);
 
     if (isNetwork && !isHost && e.i !== myIndex && !isGamepadMode) {
-      e.renderX += (e.x - e.renderX) * (dt * 15);
-      e.renderY += (e.y - e.renderY) * (dt * 15);
+      e.renderX += (e.x - e.renderX) * (dt * 15); e.renderY += (e.y - e.renderY) * (dt * 15);
     } else {
       e.renderX = e.x; e.renderY = e.y;
     }
@@ -666,9 +610,7 @@
       const a = Math.random() * 6.28, s = 60 + Math.random() * 500;
       parts.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s - 90, life:.5+Math.random()*.9, t:0, r:2+Math.random()*5, c:['#FFB020','#FF3D7F','#FFF3C4'][k%3], g:700 });
     }
-    flashes.push({x, y, t:0, life:.5}); 
-    if (CFG.shake) shake = 30; 
-    SND.boom(pan({x}));
+    flashes.push({x, y, t:0, life:.5}); if (CFG.shake) shake = 30; SND.boom(pan({x}));
   }
   const pan = e => Math.max(-.8, Math.min(.8, (e.x/W)*2-1));
 
@@ -685,16 +627,12 @@
       if (!e.alive) continue;
       if (mode === 'play') {
         e.passCd = Math.max(0, e.passCd - dt); e.immuneCd = Math.max(0, e.immuneCd - dt);
-        
         if (e.i === myIndex && (!isNetwork || isHost)) applyInput(e, getLocalInput());
         else if (isNetwork && isHost && hostConnections.find(c => c.index === e.i)) applyInput(e, networkInputs[e.i]);
         else if (e.isAI && (!isNetwork || isHost)) {
-          e.think -= dt; 
-          if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); }
+          e.think -= dt; if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); }
         } else e.wantJump = false;
-      } else {
-        e.wantDir = 0; e.wantJump = false;
-      }
+      } else { e.wantDir = 0; e.wantJump = false; }
       stepBody(e, dt);
     }
 
@@ -706,10 +644,8 @@
       else if (mode === 'play'){
         bomb.time -= dt;
         if(bomb.time > 0) matchStats.heldTime[bomb.holder] += dt;
-
         const h = ents[bomb.holder], urg = 1 - Math.max(0, bomb.time) / bomb.max;
         SND.sizzleSet(.035 + urg * .08); SND.musicSet(urg);
-        
         bomb.tickAcc -= dt;
         if (bomb.tickAcc <= 0){ SND.tick(urg, pan(h)); bomb.tickAcc = 0.85 - 0.66 * urg; }
 
@@ -723,22 +659,14 @@
             }
           }
         }
-
-        if (bomb.time <= 0){
-          h.alive = false; blast(h.x, h.y - 34); SND.sizzleOff(); mode = 'boom'; boomTimer = 1.6; slowmo = 0.2;
-        }
+        if (bomb.time <= 0){ h.alive = false; blast(h.x, h.y - 34); SND.sizzleOff(); mode = 'boom'; boomTimer = 1.6; slowmo = 0.2; }
       } 
       else if (mode === 'boom'){
         boomTimer -= dtReal;
         if (boomTimer <= 0){
-          slowmo = 1;
-          const left = ents.filter(e => e.alive);
-          if (left.length <= 1){
-            mode = 'over';
-            endGame(left.length===1 ? left[0] : null);
-          } else {
-            round++; startRound();
-          }
+          slowmo = 1; const left = ents.filter(e => e.alive);
+          if (left.length <= 1){ mode = 'over'; endGame(left.length===1 ? left[0] : null); } 
+          else { round++; startRound(); }
         }
       }
     } else if (isNetwork && !isHost && !isGamepadMode) {
@@ -758,10 +686,7 @@
       hostConnections.forEach(c => { if(c.conn.open) c.conn.send({ type:'sync', state }); });
     }
 
-    for (let i = parts.length - 1; i >= 0; i--){
-      const p = parts[i]; p.t += dtReal; if (p.t >= p.life){ parts.splice(i, 1); continue; }
-      p.vy += p.g * dtReal; p.x += p.vx * dtReal; p.y += p.vy * dtReal;
-    }
+    for (let i = parts.length - 1; i >= 0; i--){ const p = parts[i]; p.t += dtReal; if (p.t >= p.life){ parts.splice(i, 1); continue; } p.vy += p.g * dtReal; p.x += p.vx * dtReal; p.y += p.vy * dtReal; }
     for (let i = flashes.length - 1; i >= 0; i--){ flashes[i].t += dtReal; if (flashes[i].t >= flashes[i].life) flashes.splice(i, 1); }
     shake = Math.max(0, shake - dtReal * 50);
   }
@@ -773,22 +698,65 @@
     if (inp.drop && e.onGround) e.dropCd = .2;
   }
 
+  // --- BETTER PEER CREATION LOGIC ---
+  function createPeer(idCode) {
+    // Explicit STUN routing servers bypass restrictive NATs
+    const config = { 
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' }
+      ]
+    };
+    return idCode ? new Peer('btag-' + idCode, { config }) : new Peer({ config });
+  }
+
   window.hostGame = () => {
-    SND.wake(); document.getElementById('btn-host').disabled = true; document.getElementById('mp-status').innerText = "Creating...";
+    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      document.getElementById('mp-status').innerText = "Error: HTTPS (SSL) is required to host games on a deployed site.";
+      return;
+    }
+
+    SND.wake(); 
+    const btn = document.getElementById('btn-host');
+    const status = document.getElementById('mp-status');
+    btn.disabled = true; 
+    status.innerText = "Connecting to PeerJS...";
+    
     roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    peer = new Peer('btag-' + roomCode);
+    
+    // Safety timeout in case adblocker silently blocks PeerJS
+    let connectTimeout = setTimeout(() => {
+      if (!isHost) {
+        status.innerText = "Timeout: Blocked by Adblock/Firewall?";
+        btn.disabled = false;
+        if(peer) peer.destroy();
+      }
+    }, 6000);
+
+    try {
+      peer = createPeer(roomCode);
+    } catch(e) {
+      clearTimeout(connectTimeout);
+      status.innerText = "Error: Browser blocked WebRTC.";
+      btn.disabled = false;
+      return;
+    }
     
     peer.on('open', id => {
+      clearTimeout(connectTimeout);
       isNetwork = true; isHost = true; myIndex = 0; hostConnections = [];
       document.getElementById('lobby-code').innerText = roomCode;
-      document.getElementById('btn-start-mp').style.display = 'block'; document.getElementById('lobby-wait').style.display = 'none';
-      document.getElementById('mp-status').innerText = "";
+      document.getElementById('btn-start-mp').style.display = 'block'; 
+      document.getElementById('lobby-wait').style.display = 'none';
+      status.innerText = "";
       nav('v-lobby'); updateLobbyText();
     });
     
     peer.on('error', err => {
-      document.getElementById('mp-status').innerText = "Network Error. Try again.";
-      document.getElementById('btn-host').disabled = false;
+      clearTimeout(connectTimeout);
+      console.error(err);
+      status.innerText = "Err: " + (err.type || "Network Blocked");
+      btn.disabled = false;
     });
 
     peer.on('connection', conn => {
@@ -804,12 +772,8 @@
             updateLobbyText();
           }
         }
-        if (data.type === 'ctrl-input' && conn === remoteControllerConn) {
-          remoteInput = data.input;
-        }
-        if (data.type === 'input') {
-          networkInputs[conn.index] = data.input;
-        }
+        if (data.type === 'ctrl-input' && conn === remoteControllerConn) { remoteInput = data.input; }
+        if (data.type === 'input') { networkInputs[conn.index] = data.input; }
       });
       conn.on('close', () => { 
         if (conn === remoteControllerConn) remoteControllerConn = null;
@@ -821,8 +785,14 @@
 
   window.joinGame = () => {
     const code = document.getElementById('room-code').value.toUpperCase(); if(code.length !== 4) return;
+    
+    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      document.getElementById('mp-status').innerText = "Error: HTTPS required.";
+      return;
+    }
+
     SND.wake(); document.getElementById('btn-join').disabled = true; document.getElementById('mp-status').innerText = "Connecting...";
-    peer = new Peer();
+    peer = createPeer();
     
     peer.on('open', () => {
       hostConn = peer.connect('btag-' + code);
@@ -840,7 +810,7 @@
         if (data.type === 'sync') { syncClient(data.state); }
         if (data.type === 'error') { alert("Room full or in progress."); disconnectMP(); }
       });
-      hostConn.on('error', err => { document.getElementById('mp-status').innerText = "Host not found."; document.getElementById('btn-join').disabled = false; });
+      hostConn.on('error', err => { document.getElementById('mp-status').innerText = "Host connection lost."; document.getElementById('btn-join').disabled = false; });
       hostConn.on('close', () => { alert("Host disconnected."); disconnectMP(); });
     });
     peer.on('error', err => {
@@ -854,7 +824,7 @@
   window.connectGamepad = () => {
     const code = document.getElementById('gamepad-code').value.toUpperCase(); if(code.length !== 4) return;
     document.getElementById('gp-status').innerText = "Connecting...";
-    peer = new Peer();
+    peer = createPeer();
     
     peer.on('open', () => {
       gamepadConn = peer.connect('btag-' + code);
@@ -865,13 +835,11 @@
         document.getElementById('touch-controls').style.display = 'block';
         document.getElementById('touch-controls').style.pointerEvents = 'auto'; 
         document.getElementById('btn-gp-disc').style.display = 'block';
-        
-        // Hide canvas to save battery/resources on phone controller
         document.getElementById('stage').style.display = 'none'; 
         document.body.style.background = '#000'; 
       });
       gamepadConn.on('close', () => { alert("Host disconnected."); disconnectGamepad(); });
-      gamepadConn.on('error', () => { document.getElementById('gp-status').innerText = "Host not found."; });
+      gamepadConn.on('error', () => { document.getElementById('gp-status').innerText = "Host connection lost."; });
     });
     peer.on('error', err => { document.getElementById('gp-status').innerText = "Room not found."; });
   };
@@ -882,7 +850,6 @@
     document.getElementById('touch-controls').style.display = 'none';
     document.getElementById('touch-controls').style.pointerEvents = 'none'; 
     document.getElementById('btn-gp-disc').style.display = 'none';
-    
     document.getElementById('stage').style.display = 'block'; 
     document.body.style.background = 'var(--page)';
     nav('v-main');
