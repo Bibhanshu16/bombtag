@@ -22,6 +22,7 @@
     -webkit-tap-highlight-color:transparent;
   }
 
+  /* Default (Landscape) Stage */
   .stage{
     position:relative; width:100vw; height:100vh; overflow:hidden; background:#241447;
     max-width: 1280px; max-height: 720px; aspect-ratio: 16/9; box-shadow:0 0 40px rgba(0,0,0,.8);
@@ -41,11 +42,10 @@
   
   .panel {
     background: var(--panel); border: 2px solid var(--edge); border-radius: 16px;
-    padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 90%; max-width: 400px;
+    padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 90%; max-width: 440px;
     box-shadow: 0 16px 40px rgba(0,0,0,.6); text-align: center; max-height: 90vh; overflow-y:auto;
   }
   .panel h2 { font-family:var(--display); font-size:32px; margin:0; color:var(--cyan); line-height: 1; }
-  .panel h3 { font-family:var(--display); font-size:20px; margin:0; color:var(--amber); }
   
   button.btn {
     font-family:var(--display); font-weight:800; font-size:18px; color:#120C24; background:var(--ink);
@@ -64,15 +64,16 @@
   .col { display:flex; flex-direction:column; gap:8px; width:100%; }
   
   input[type="text"] {
-    font-family:var(--display); font-weight:800; font-size:20px; text-transform:uppercase; text-align:center;
-    padding:10px; border-radius:12px; border:2px solid var(--edge); background:rgba(0,0,0,0.4); color:white; width:100%;
+    font-family:var(--display); font-weight:800; font-size:24px; text-transform:uppercase; text-align:center;
+    padding:12px; border-radius:12px; border:2px solid var(--edge); background:rgba(0,0,0,0.4); color:var(--cyan); width:100%;
+    letter-spacing: 4px;
   }
 
   label { font-size:14px; font-weight:bold; color:var(--ink-dim); display:flex; justify-content:space-between; }
   input[type="range"] { accent-color: var(--cyan); width: 100%; }
   .key-bind { background:rgba(255,255,255,.1); padding:6px 12px; border-radius:8px; cursor:pointer; font-family:monospace; }
   
-  /* Touch Controls */
+  /* Virtual Gamepad Controls */
   #touch-controls { position:fixed; inset:0; z-index:10; display:none; pointer-events:none; }
   .v-stick-zone { position:absolute; bottom:40px; left:40px; width:140px; height:140px; pointer-events:auto; touch-action:none; }
   .v-stick-bg { position:absolute; inset:0; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.15); }
@@ -81,18 +82,22 @@
   .v-btn:active { background:rgba(255,255,255,0.4); transform:scale(0.92); color:white; }
   #btn-jump { bottom:40px; right:40px; }
   #btn-run { bottom:125px; right:115px; }
-  #btn-gp-disc { position:absolute; top:20px; left:50%; transform:translateX(-50%); width:auto; display:none; pointer-events:auto; }
+  #btn-gp-disc { position:absolute; top:20px; left:50%; transform:translateX(-50%); width:auto; display:none; pointer-events:auto; font-size: 14px; padding: 8px 16px; }
 
   #banner { position:absolute; top:40%; left:0; width:100%; text-align:center; font-family:var(--display); font-size:60px; font-weight:800; color:var(--amber); text-shadow:0 4px 15px rgba(0,0,0,0.8); pointer-events:none; opacity:0; transition:opacity 0.2s; z-index:5; }
   .char-preview { width:60px; height:60px; border-radius:50%; margin:0 auto; border:3px solid var(--edge); }
-  ::-webkit-scrollbar { width: 8px; }
-  ::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 4px; }
 
+  /* 📱 PORTRAIT MOBILE LAYOUT (GAMEPAD MODE) 📱 */
   @media (orientation: portrait) {
-    body { justify-content: flex-start; padding-top: max(env(safe-area-inset-top), 4vh); }
-    .stage { width: 100vw !important; height: calc(100vw * 9 / 16) !important; max-height: none !important; border-radius: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.6); flex-shrink: 0; }
+    body { justify-content: flex-start; background: #080512; }
+    .stage { 
+      width: 100vw !important; height: calc(100vw * 9 / 16) !important; max-height: none !important; 
+      border-radius: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.9); flex-shrink: 0; 
+    }
+    
     .v-stick-zone { bottom: 12vh; left: 8vw; width: 160px; height: 160px; }
     .v-stick-knob { width: 70px; height: 70px; top: 45px; left: 45px; }
+    
     .v-btn { width: 85px; height: 85px; font-size: 17px; }
     #btn-jump { bottom: 12vh; right: 8vw; }
     #btn-run { bottom: 26vh; right: 28vw; }
@@ -107,8 +112,9 @@
   <div id="banner">ROUND 1</div>
 </div>
 
+<!-- Virtual Touch Controls -->
 <div id="touch-controls">
-  <button id="btn-gp-disc" class="btn danger" onclick="disconnectGamepad()">Disconnect Gamepad</button>
+  <button id="btn-gp-disc" class="btn danger" onclick="disconnectGamepad()">Disconnect</button>
   <div class="v-stick-zone" id="joystick">
     <div class="v-stick-bg"></div>
     <div class="v-stick-knob" id="joy-knob"></div>
@@ -121,15 +127,16 @@
   <!-- View: Main Menu -->
   <div class="panel view" id="v-main">
     <h1><span style="font-family:var(--display); font-size:46px; color:var(--ink);">Bomb</span> <span style="font-family:var(--display); font-size:46px; color:var(--hot);">Tag</span></h1>
-    <p style="margin:0; color:var(--ink-dim);">Don't hold the bomb when the fuse ends.</p>
-    <button class="btn primary" onclick="nav('v-char', {next:'v-setup'})">Single Player</button>
-    <button class="btn primary" onclick="nav('v-mp')">Multiplayer</button>
-    <div class="row">
-      <button class="btn secondary" onclick="nav('v-gamepad')">Gamepad Mode</button>
-      <button class="btn secondary" onclick="nav('v-htp')">How to Play</button>
+    <div class="col" style="gap:12px; margin-top:10px;">
+      <button class="btn primary" onclick="nav('v-char', {next:'v-setup'})">Single Player (Bots)</button>
+      <button class="btn primary" onclick="hostLocalParty()" style="background:var(--amber); color:#2A0716;">Local Party (Phones as Pads)</button>
+      <button class="btn primary" onclick="nav('v-mp')">Online Multiplayer</button>
     </div>
-    <button class="btn secondary" onclick="nav('v-settings')">Settings</button>
-    <div id="high-score-display" style="font-size:14px; color:var(--amber); margin-top:10px;"></div>
+    <div class="row" style="margin-top:5px;">
+      <button class="btn secondary" onclick="nav('v-gamepad')">Join Gamepad</button>
+      <button class="btn secondary" onclick="nav('v-settings')">Settings</button>
+    </div>
+    <div id="high-score-display" style="font-size:14px; color:var(--ink-dim); margin-top:5px;"></div>
   </div>
 
   <!-- View: Character Select -->
@@ -145,59 +152,75 @@
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
-  <!-- View: Single Player Setup -->
+  <!-- View: Setup SP / Online Match -->
   <div class="panel view" id="v-setup" style="display:none;">
     <h2>Match Setup</h2>
     <div class="col">
       <label>Map <span id="lbl-map">Classic</span></label>
       <input type="range" id="set-map" min="0" max="2" value="0" oninput="document.getElementById('lbl-map').innerText=['Classic', 'Twin Peaks', 'Flatlands'][this.value]">
-      
-      <label>Difficulty <span id="lbl-diff">Normal</span></label>
+      <label>Bot Difficulty <span id="lbl-diff">Normal</span></label>
       <input type="range" id="set-diff" min="0" max="2" value="1" oninput="document.getElementById('lbl-diff').innerText=['Easy', 'Normal', 'Hard'][this.value]">
     </div>
     <button class="btn primary" onclick="startGame(false)">Start Match</button>
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
-  <!-- View: Multiplayer Connect -->
+  <!-- View: Online MP Connect -->
   <div class="panel view" id="v-mp" style="display:none;">
-    <h2>Multiplayer</h2>
-    <button class="btn primary" id="btn-host" onclick="hostGame()">Host Room</button>
+    <h2>Online Multiplayer</h2>
+    <button class="btn primary" id="btn-host" onclick="hostGame()">Host Public Room</button>
     <div style="border-top:1px solid var(--edge); margin:10px 0;"></div>
-    <input type="text" id="room-code" placeholder="ENTER 4-LETTER CODE" maxlength="4">
+    <input type="text" id="room-code" placeholder="ENTER ROOM CODE" maxlength="4">
     <button class="btn primary" id="btn-join" onclick="joinGame()">Join Room</button>
     <p id="mp-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
-  <!-- View: Gamepad Mode -->
+  <!-- View: Local Party Lobby (Host) -->
+  <div class="panel view" id="v-party" style="display:none;">
+    <h2>Local Party</h2>
+    <p style="font-size:14px; color:var(--ink-dim); margin:0;">Tell your friends to join on their phones, click <b>Join Gamepad</b>, and enter this code:</p>
+    <h1 style="font-size:52px; margin:5px 0; color:var(--cyan); letter-spacing:4px;" id="party-code">----</h1>
+    
+    <div class="col" style="text-align:left; background:rgba(0,0,0,0.3); padding:15px; border-radius:12px; font-weight:bold;">
+      <div id="p-slot-0" style="color:#38E1FF">🟢 P1: Keyboard / Gamepad</div>
+      <div id="p-slot-1" style="color:#B6A6D8">⚪ P2: AI Bot (Waiting for Phone)</div>
+      <div id="p-slot-2" style="color:#B6A6D8">⚪ P3: AI Bot (Waiting for Phone)</div>
+      <div id="p-slot-3" style="color:#B6A6D8">⚪ P4: AI Bot (Waiting for Phone)</div>
+    </div>
+    
+    <button class="btn primary" id="btn-start-party" onclick="startMPGame()">Start Match</button>
+    <button class="btn danger" onclick="disconnectMP()">Cancel Party</button>
+  </div>
+
+  <!-- View: Gamepad Join (Client) -->
   <div class="panel view" id="v-gamepad" style="display:none;">
-    <h2>Virtual Gamepad</h2>
-    <p style="font-size:14px; color:var(--ink-dim); text-align:left;">Host or join a multiplayer room on another device, then enter the room code here. You'll pick which player this phone controls — the host, or any open bot slot.</p>
-    <input type="text" id="gamepad-code" placeholder="ENTER ROOM CODE" maxlength="4">
-    <button class="btn primary" id="btn-connect-gp" onclick="connectGamepad()">Connect Controller</button>
+    <h2>Virtual Controller</h2>
+    <p style="font-size:14px; color:var(--ink-dim); text-align:left;">Enter the room code displayed on the host's screen to use your phone as a controller.</p>
+    <input type="text" id="gamepad-code" placeholder="ROOM CODE" maxlength="4">
+    <button class="btn primary" id="btn-connect-gp" onclick="connectGamepad()">Connect</button>
     <p id="gp-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
-  <!-- View: Gamepad Slot Select -->
+  <!-- View: Gamepad Slot Pick (Client) -->
   <div class="panel view" id="v-gp-select" style="display:none;">
-    <h2>Choose Player</h2>
-    <p style="font-size:14px;color:var(--ink-dim); margin:0;">Pick who this phone will control.</p>
+    <h2>Select Player</h2>
+    <p style="font-size:14px;color:var(--ink-dim); margin:0;">Who do you want to control?</p>
     <div class="col" id="gp-slot-list"></div>
     <p id="gp-select-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
     <button class="btn secondary" onclick="disconnectGamepad()">Cancel</button>
   </div>
 
-  <!-- View: Lobby -->
+  <!-- View: Online Lobby -->
   <div class="panel view" id="v-lobby" style="display:none;">
     <h2>Room: <span id="lobby-code" style="color:var(--cyan)"></span></h2>
     <p id="lobby-players">Players: 1 / 4</p>
     <div id="lobby-char-select" class="col" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;">
       <p style="margin:0; font-size:14px;">Your Color: <span id="lobby-my-color">Cyan</span></p>
       <div class="row">
-        <button class="btn secondary" style="padding:4px;" onclick="cycleChar(-1)">◀</button>
-        <button class="btn secondary" style="padding:4px;" onclick="cycleChar(1)">▶</button>
+        <button class="btn secondary" style="padding:4px;" onclick="cycleChar(-1); updateLobbyColor()">◀</button>
+        <button class="btn secondary" style="padding:4px;" onclick="cycleChar(1); updateLobbyColor()">▶</button>
       </div>
     </div>
     <button class="btn primary" id="btn-start-mp" onclick="startMPGame()" style="display:none;">Start Match</button>
@@ -222,17 +245,6 @@
       <label>Sprint <span class="key-bind" id="bind-S" onclick="bindKey('S')">SHIFT</span></label>
     </div>
     <button class="btn secondary" style="margin-top:10px;" onclick="saveSettings(); nav('v-main')">Save & Back</button>
-  </div>
-
-  <!-- View: Info -->
-  <div class="panel view" id="v-htp" style="display:none;">
-    <h2>How to Play</h2>
-    <p style="font-size:14px; text-align:left; color:var(--ink-dim);">
-      <b>Objective:</b> Don't be holding the bomb when the fuse runs out.<br><br>
-      <b>Tagging:</b> Run into another player to pass the bomb. The tagged player gets a brief immunity shield.<br><br>
-      <b>Controls:</b> Use Keyboard or on-screen Touch controls. Sprinting makes you faster but harder to stop.
-    </p>
-    <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
   <!-- View: Pause -->
@@ -266,7 +278,7 @@
   }
   function updateScore(round) {
     if(round > CFG.highscore) { CFG.highscore = round; saveSettings(); }
-    document.getElementById('high-score-display').innerText = `Best Survival: ${CFG.highscore} Rounds`;
+    document.getElementById('high-score-display').innerText = `Best Solo Survival: ${CFG.highscore} Rounds`;
   }
   
   document.getElementById('cfg-mus').value = CFG.mus * 100;
@@ -279,7 +291,7 @@
   window.bindKey = (action) => {
     bindingKey = action;
     const el = document.getElementById(`bind-${action}`);
-    el.innerText = 'PRESS KEY...'; el.style.color = 'var(--cyan)';
+    el.innerText = 'PRESS...'; el.style.color = 'var(--cyan)';
   };
 
   let uiContext = {};
@@ -289,7 +301,12 @@
     document.getElementById(id).style.display = 'flex';
   };
   
-  const PALETTE = [{name:'Cyan', body:'#38E1FF', dark:'#128FB8', head:'#BDF4FF'}, {name:'Rosa', body:'#FF5DA2', dark:'#B32C68', head:'#FFD2E6'}, {name:'Pip', body:'#FFC53D', dark:'#B7801A', head:'#FFF0C4'}, {name:'Moss', body:'#7CFF6B', dark:'#3E9A34', head:'#DCFFD6'}];
+  const PALETTE = [
+    {name:'Cyan', body:'#38E1FF', dark:'#128FB8', head:'#BDF4FF'}, 
+    {name:'Rosa', body:'#FF5DA2', dark:'#B32C68', head:'#FFD2E6'}, 
+    {name:'Pip', body:'#FFC53D', dark:'#B7801A', head:'#FFF0C4'}, 
+    {name:'Moss', body:'#7CFF6B', dark:'#3E9A34', head:'#DCFFD6'}
+  ];
   let myColorIdx = 0;
   window.cycleChar = (dir) => {
     myColorIdx = (myColorIdx + dir + PALETTE.length) % PALETTE.length;
@@ -449,19 +466,21 @@
   function updateJoy(x, y) {
     let dx = x - joyOrigin.x, dy = y - joyOrigin.y;
     const dist = Math.hypot(dx, dy);
-    if(dist > 40) { dx = (dx/dist)*40; dy = (dy/dist)*40; }
+    if(dist > 40) { dx = (dx/dist)*40; dy = (dy/dist)*40; } 
     knob.style.transform = `translate(${dx}px, ${dy}px)`;
     touchState.L = dx < -15; touchState.R = dx > 15; touchState.drop = dy > 25;
   }
 
   function getLocalInput() {
-    return {
+    const kb = {
       L: keys[CFG.keys.L] || keys['arrowleft'] || touchState.L,
       R: keys[CFG.keys.R] || keys['arrowright'] || touchState.R,
       run: keys[CFG.keys.S] || touchState.run,
       jump: keys[CFG.keys.J] || keys['arrowup'] || keys[' '] || touchState.jump,
       drop: keys['s'] || keys['arrowdown'] || touchState.drop
     };
+    if (remoteInput) return { L: kb.L || remoteInput.L, R: kb.R || remoteInput.R, run: kb.run || remoteInput.run, jump: kb.jump || remoteInput.jump, drop: kb.drop || remoteInput.drop };
+    return kb;
   }
   function mergeInput(a, b) {
     if (!b) return a;
@@ -470,7 +489,6 @@
 
   const W = 960, H = 540, HW = 13, BODY_H = 70;
   const canvas = document.getElementById('game'); const ctx = canvas.getContext('2d', {alpha:false});
-  
   function fit() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr; canvas.height = H * dpr;
@@ -489,7 +507,8 @@
   let ents = [], bomb = null, parts = [], flashes = [];
   let matchStats = { tags: [0,0,0,0], heldTime: [0,0,0,0] };
 
-  let isNetwork = false, isHost = false, peer = null, myIndex = 0;
+  // Network & Party Variables
+  let isNetwork = false, isHost = false, partyMode = false, peer = null, myIndex = 0;
   let hostConnections = [], hostConn = null, networkInputs = { 1:{}, 2:{}, 3:{} };
   let lastSyncTime = 0, roomCode = '';
   let activeSlotColors = null;
@@ -516,14 +535,25 @@
     ents = []; const spawns = [[160,400], [800,400], [480,200], [480,400]];
     
     if (isNetwork) {
-      const active = [0];
-      for(let i=1; i<4; i++){ if(hostConnections.some(c => c.index === i) || (isHost && gamepadSlots[i])) active.push(i); }
-      for(let i=0; i<4; i++){
-        const col = (activeSlotColors && activeSlotColors[i] != null) ? activeSlotColors[i] : (i===myIndex ? myColorIdx : i);
-        ents.push(spawn(i, spawns[i][0], spawns[i][1], false, col));
+      if (partyMode) {
+        // Party Mode: Always spawn 4 players. If a slot has a gamepad, it's human. Else AI.
+        ents.push(spawn(0, spawns[0][0], spawns[0][1], false, myColorIdx));
+        for(let i=1; i<4; i++){
+          const isBot = !gamepadSlots[i];
+          ents.push(spawn(i, spawns[i][0], spawns[i][1], isBot, i));
+        }
+      } else {
+        // Online MP: Only spawn active connections
+        const active = [0];
+        for(let i=1; i<4; i++){ if(hostConnections.some(c => c.index === i) || (isHost && gamepadSlots[i])) active.push(i); }
+        for(let i=0; i<4; i++){
+          const col = (activeSlotColors && activeSlotColors[i] != null) ? activeSlotColors[i] : (i===myIndex ? myColorIdx : i);
+          ents.push(spawn(i, spawns[i][0], spawns[i][1], false, col));
+        }
+        if(isHost) { ents.forEach(e => { if(!active.includes(e.i)) e.alive = false; }); }
       }
-      if(isHost) { ents.forEach(e => { if(!active.includes(e.i)) e.alive = false; }); }
     } else {
+      // Single Player
       ents.push(spawn(0, spawns[0][0], spawns[0][1], false, myColorIdx));
       for(let i=1; i<4; i++) ents.push(spawn(i, spawns[i][0], spawns[i][1], true, i === myColorIdx ? (i+1)%4 : i));
     }
@@ -642,13 +672,15 @@
       if (!e.alive) continue;
       if (mode === 'play') {
         e.passCd = Math.max(0, e.passCd - dt); e.immuneCd = Math.max(0, e.immuneCd - dt);
+        
         if (!isNetwork) {
-          if (e.i === myIndex) applyInput(e, getLocalInput());
+          if (e.i === 0) applyInput(e, getLocalInput());
           else if (e.isAI) { e.think -= dt; if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); } }
-        } else if (isHost) {
+        } 
+        else if (isHost) {
           if (e.i === 0) applyInput(e, mergeInput(getLocalInput(), gamepadInputBySlot[0]));
-          else if (hostConnections.find(c => c.index === e.i)) applyInput(e, networkInputs[e.i]);
           else if (gamepadSlots[e.i]) applyInput(e, gamepadInputBySlot[e.i]);
+          else if (!partyMode && hostConnections.find(c => c.index === e.i)) applyInput(e, networkInputs[e.i]);
           else if (e.isAI) { e.think -= dt; if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); } }
         } else {
           e.wantJump = false;
@@ -697,7 +729,8 @@
       }
     }
 
-    if (isNetwork && isHost && performance.now() - lastSyncTime > 40) {
+    // Only broadcast state if it's Online MP (not Local Party)
+    if (isNetwork && isHost && !partyMode && performance.now() - lastSyncTime > 40) {
       lastSyncTime = performance.now();
       const state = {
         mode, round, slowmo,
@@ -719,83 +752,29 @@
     if (inp.drop && e.onGround) e.dropCd = .2;
   }
 
-  // --- BETTER PEER CREATION LOGIC ---
   function createPeer(idCode) {
-    // Explicit STUN routing servers bypass restrictive NATs
-    const config = { 
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
-      ]
-    };
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] };
     return idCode ? new Peer('btag-' + idCode, { config }) : new Peer({ config });
   }
 
-  window.hostGame = () => {
-    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-      document.getElementById('mp-status').innerText = "Error: HTTPS (SSL) is required to host games on a deployed site.";
-      return;
-    }
-
-    SND.wake(); 
-    const btn = document.getElementById('btn-host');
-    const status = document.getElementById('mp-status');
-    btn.disabled = true; 
-    status.innerText = "Connecting to PeerJS...";
-    
+  window.hostLocalParty = () => {
+    SND.wake(); partyMode = true; 
     roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+    document.getElementById('party-code').innerText = "Loading...";
+    nav('v-party');
     
-    // Safety timeout in case adblocker silently blocks PeerJS
-    let connectTimeout = setTimeout(() => {
-      if (!isHost) {
-        status.innerText = "Timeout: Blocked by Adblock/Firewall?";
-        btn.disabled = false;
-        if(peer) peer.destroy();
-      }
-    }, 6000);
-
-    try {
-      peer = createPeer(roomCode);
-    } catch(e) {
-      clearTimeout(connectTimeout);
-      status.innerText = "Error: Browser blocked WebRTC.";
-      btn.disabled = false;
-      return;
-    }
-    
+    peer = createPeer(roomCode);
     peer.on('open', id => {
-      clearTimeout(connectTimeout);
       isNetwork = true; isHost = true; myIndex = 0; hostConnections = [];
-      document.getElementById('lobby-code').innerText = roomCode;
-      document.getElementById('btn-start-mp').style.display = 'block'; 
-      document.getElementById('lobby-wait').style.display = 'none';
-      status.innerText = "";
-      nav('v-lobby'); updateLobbyText();
+      document.getElementById('party-code').innerText = roomCode;
+      updatePartyLobby();
     });
     
-    peer.on('error', err => {
-      clearTimeout(connectTimeout);
-      console.error(err);
-      status.innerText = "Err: " + (err.type || "Network Blocked");
-      btn.disabled = false;
-    });
-
     peer.on('connection', conn => {
       conn.on('data', data => {
-        if (data.type === 'join') {
-          if (data.mode === 'gamepad') {
-            pendingGpConns.add(conn);
-            conn.send({ type:'gp-slots', slots: slotInfo() });
-          } else {
-            if(hostConnections.length >= 3 || mode !== 'menu') { conn.send({type:'error'}); setTimeout(()=>conn.close(), 500); return; }
-            const nextIdx = [1,2,3].find(i => !hostConnections.some(c => c.index === i));
-            hostConnections.push({ conn, index: nextIdx, color: data.color != null ? data.color : nextIdx });
-            conn.send({ type:'welcome', index: nextIdx });
-            updateLobbyText();
-          }
-        }
-        if (data.type === 'color') {
-          const c = hostConnections.find(c => c.conn === conn); if (c) c.color = data.color;
+        if (data.type === 'join' && data.mode === 'gamepad') {
+          pendingGpConns.add(conn);
+          conn.send({ type:'gp-slots', slots: slotInfo() });
         }
         if (data.type === 'gp-claim') {
           const info = slotInfo().find(s => s.index === data.slot);
@@ -803,7 +782,7 @@
             gamepadSlots[data.slot] = conn; gamepadInputBySlot[data.slot] = null;
             pendingGpConns.delete(conn);
             conn.send({ type:'gp-welcome', slot: data.slot, color: PALETTE[data.slot % PALETTE.length].body, name: PALETTE[data.slot % PALETTE.length].name });
-            updateLobbyText();
+            updatePartyLobby();
           } else {
             conn.send({ type:'gp-taken' });
             conn.send({ type:'gp-slots', slots: slotInfo() });
@@ -812,25 +791,92 @@
         if (data.type === 'ctrl-input') {
           for (const k in gamepadSlots) { if (gamepadSlots[k] === conn) gamepadInputBySlot[k] = data.input; }
         }
+      });
+      conn.on('close', () => { 
+        for (const k in gamepadSlots) { if (gamepadSlots[k] === conn) gamepadSlots[k] = null; }
+        pendingGpConns.delete(conn); updatePartyLobby(); 
+      });
+    });
+  };
+
+  function updatePartyLobby() {
+    if (!partyMode) return;
+    for(let i=1; i<4; i++){
+      const el = document.getElementById(`p-slot-${i}`);
+      if(gamepadSlots[i]) el.innerHTML = `🟢 P${i+1}: Gamepad Connected`;
+      else el.innerHTML = `⚪ P${i+1}: AI Bot (Waiting for Phone)`;
+    }
+    broadcastSlotsToPending();
+  }
+
+  window.hostGame = () => {
+    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      document.getElementById('mp-status').innerText = "Error: HTTPS (SSL) is required to host games on a deployed site."; return;
+    }
+    SND.wake(); partyMode = false;
+    const btn = document.getElementById('btn-host'); const status = document.getElementById('mp-status');
+    btn.disabled = true; status.innerText = "Connecting to PeerJS...";
+    roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+    
+    let connectTimeout = setTimeout(() => {
+      if (!isHost) { status.innerText = "Timeout: Blocked by Adblock/Firewall?"; btn.disabled = false; if(peer) peer.destroy(); }
+    }, 6000);
+
+    try { peer = createPeer(roomCode); } 
+    catch(e) { clearTimeout(connectTimeout); status.innerText = "Error: Browser blocked WebRTC."; btn.disabled = false; return; }
+    
+    peer.on('open', id => {
+      clearTimeout(connectTimeout);
+      isNetwork = true; isHost = true; myIndex = 0; hostConnections = [];
+      document.getElementById('lobby-code').innerText = roomCode;
+      document.getElementById('btn-start-mp').style.display = 'block'; document.getElementById('lobby-wait').style.display = 'none';
+      status.innerText = ""; nav('v-lobby'); updateLobbyText();
+    });
+    
+    peer.on('error', err => {
+      clearTimeout(connectTimeout); console.error(err);
+      status.innerText = "Err: " + (err.type || "Network Blocked"); btn.disabled = false;
+    });
+
+    peer.on('connection', conn => {
+      conn.on('data', data => {
+        if (data.type === 'join') {
+          if (data.mode === 'gamepad') {
+            pendingGpConns.add(conn); conn.send({ type:'gp-slots', slots: slotInfo() });
+          } else {
+            if(hostConnections.length >= 3 || mode !== 'menu') { conn.send({type:'error'}); setTimeout(()=>conn.close(), 500); return; }
+            const nextIdx = [1,2,3].find(i => !hostConnections.some(c => c.index === i));
+            hostConnections.push({ conn, index: nextIdx, color: data.color != null ? data.color : nextIdx });
+            conn.send({ type:'welcome', index: nextIdx }); updateLobbyText();
+          }
+        }
+        if (data.type === 'color') { const c = hostConnections.find(c => c.conn === conn); if (c) c.color = data.color; }
+        if (data.type === 'gp-claim') {
+          const info = slotInfo().find(s => s.index === data.slot);
+          if (info && info.claimable) {
+            gamepadSlots[data.slot] = conn; gamepadInputBySlot[data.slot] = null;
+            pendingGpConns.delete(conn);
+            conn.send({ type:'gp-welcome', slot: data.slot, color: PALETTE[data.slot % PALETTE.length].body, name: PALETTE[data.slot % PALETTE.length].name });
+            updateLobbyText();
+          } else {
+            conn.send({ type:'gp-taken' }); conn.send({ type:'gp-slots', slots: slotInfo() });
+          }
+        }
+        if (data.type === 'ctrl-input') { for (const k in gamepadSlots) { if (gamepadSlots[k] === conn) gamepadInputBySlot[k] = data.input; } }
         if (data.type === 'input') { networkInputs[conn.index] = data.input; }
       });
       conn.on('close', () => { 
         for (const k in gamepadSlots) { if (gamepadSlots[k] === conn) gamepadSlots[k] = null; }
-        pendingGpConns.delete(conn);
-        hostConnections = hostConnections.filter(c => c.conn !== conn); 
-        updateLobbyText(); 
+        pendingGpConns.delete(conn); hostConnections = hostConnections.filter(c => c.conn !== conn); updateLobbyText(); 
       });
     });
   };
 
   window.joinGame = () => {
     const code = document.getElementById('room-code').value.toUpperCase(); if(code.length !== 4) return;
-    
     if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-      document.getElementById('mp-status').innerText = "Error: HTTPS required.";
-      return;
+      document.getElementById('mp-status').innerText = "Error: HTTPS required."; return;
     }
-
     SND.wake(); document.getElementById('btn-join').disabled = true; document.getElementById('mp-status').innerText = "Connecting...";
     peer = createPeer();
     
@@ -838,11 +884,10 @@
       hostConn = peer.connect('btag-' + code);
       hostConn.on('open', () => {
         hostConn.send({type: 'join', mode: 'player', color: myColorIdx});
-        isNetwork = true; isHost = false;
+        isNetwork = true; isHost = false; partyMode = false;
         document.getElementById('lobby-code').innerText = code;
         document.getElementById('btn-start-mp').style.display = 'none'; document.getElementById('lobby-wait').style.display = 'block';
-        document.getElementById('mp-status').innerText = "";
-        nav('v-lobby');
+        document.getElementById('mp-status').innerText = ""; nav('v-lobby');
       });
       hostConn.on('data', data => {
         if (data.type === 'welcome') { myIndex = data.index; }
@@ -854,28 +899,22 @@
       hostConn.on('close', () => { alert("Host disconnected."); disconnectMP(); });
     });
     peer.on('error', err => {
-      let errorMsg = "Connection failed.";
-      if (err.type === 'peer-unavailable') errorMsg = "Room not found.";
-      document.getElementById('mp-status').innerText = errorMsg;
-      document.getElementById('btn-join').disabled = false;
+      let errorMsg = "Connection failed."; if (err.type === 'peer-unavailable') errorMsg = "Room not found.";
+      document.getElementById('mp-status').innerText = errorMsg; document.getElementById('btn-join').disabled = false;
     });
   };
 
   window.connectGamepad = () => {
     const code = document.getElementById('gamepad-code').value.toUpperCase(); if(code.length !== 4) return;
-    document.getElementById('gp-status').innerText = "Connecting...";
-    document.getElementById('btn-connect-gp').disabled = true;
+    document.getElementById('gp-status').innerText = "Connecting..."; document.getElementById('btn-connect-gp').disabled = true;
     peer = createPeer();
     
     peer.on('open', () => {
       gamepadConn = peer.connect('btag-' + code);
-      gamepadConn.on('open', () => {
-        gamepadConn.send({type: 'join', mode: 'gamepad'});
-        document.getElementById('gp-status').innerText = "";
-      });
+      gamepadConn.on('open', () => { gamepadConn.send({type: 'join', mode: 'gamepad'}); document.getElementById('gp-status').innerText = ""; });
       gamepadConn.on('data', data => {
         if (data.type === 'gp-slots') renderSlotPicker(data.slots);
-        if (data.type === 'gp-taken') { document.getElementById('gp-select-status').innerText = "That player was just taken — pick another."; }
+        if (data.type === 'gp-taken') { document.getElementById('gp-select-status').innerText = "Player taken. Pick another."; }
         if (data.type === 'gp-welcome') enterControllerView(data);
       });
       gamepadConn.on('close', () => { alert("Host disconnected."); disconnectGamepad(); });
@@ -885,15 +924,12 @@
   };
 
   function renderSlotPicker(slots) {
-    nav('v-gp-select');
-    document.getElementById('gp-select-status').innerText = "";
+    nav('v-gp-select'); document.getElementById('gp-select-status').innerText = "";
     const list = document.getElementById('gp-slot-list'); list.innerHTML = '';
     slots.forEach(s => {
       const btn = document.createElement('button');
       btn.className = 'btn ' + (s.claimable ? 'primary' : 'secondary');
-      btn.disabled = !s.claimable;
-      btn.style.borderLeft = `8px solid ${s.color}`;
-      btn.style.textAlign = 'left';
+      btn.disabled = !s.claimable; btn.style.borderLeft = `8px solid ${s.color}`; btn.style.textAlign = 'left';
       btn.innerText = (s.index === 0 ? 'Host' : `Player ${s.index + 1}`) + ' — ' + s.status;
       btn.onclick = () => { if (gamepadConn && gamepadConn.open) gamepadConn.send({ type:'gp-claim', slot: s.index }); };
       list.appendChild(btn);
@@ -904,62 +940,52 @@
     mySlot = data.slot; isGamepadMode = true; lastTouchStateStr = "";
     document.getElementById('btn-gp-disc').innerText = `Disconnect (${data.slot === 0 ? 'Host' : 'Player ' + (data.slot + 1)})`;
     document.getElementById('ui-layer').classList.add('hidden');
-    document.getElementById('touch-controls').style.display = 'block';
-    document.getElementById('touch-controls').style.pointerEvents = 'auto';
+    document.getElementById('touch-controls').style.display = 'block'; document.getElementById('touch-controls').style.pointerEvents = 'auto';
     document.getElementById('btn-gp-disc').style.display = 'block';
-    document.getElementById('stage').style.display = 'none';
-    document.body.style.background = '#000';
+    document.getElementById('stage').style.display = 'none'; document.body.style.background = '#000';
   }
 
   window.disconnectGamepad = () => {
     if(peer) peer.destroy();
     isGamepadMode = false; gamepadConn = null; mySlot = null; lastTouchStateStr = "";
-    document.getElementById('touch-controls').style.display = 'none';
-    document.getElementById('touch-controls').style.pointerEvents = 'none'; 
-    document.getElementById('btn-gp-disc').style.display = 'none';
-    document.getElementById('stage').style.display = 'block'; 
-    document.body.style.background = 'var(--page)';
-    document.getElementById('btn-connect-gp').disabled = false;
-    nav('v-main');
+    document.getElementById('touch-controls').style.display = 'none'; document.getElementById('touch-controls').style.pointerEvents = 'none'; document.getElementById('btn-gp-disc').style.display = 'none';
+    document.getElementById('stage').style.display = 'block'; document.body.style.background = 'var(--page)';
+    document.getElementById('btn-connect-gp').disabled = false; nav('v-main');
   }
 
   function slotInfo() {
     const info = [];
     for (let i = 0; i < 4; i++) {
       let status, claimable;
-      if (i === 0) { status = gamepadSlots[0] ? 'Controller linked' : 'Host'; claimable = !gamepadSlots[0]; }
-      else if (hostConnections.some(c => c.index === i)) { status = 'Player joined'; claimable = false; }
+      if (i === 0) { status = gamepadSlots[0] ? 'Controller linked' : 'Host Keyboard'; claimable = !gamepadSlots[0]; }
+      else if (hostConnections.some(c => c.index === i)) { status = 'Online Player'; claimable = false; }
       else if (gamepadSlots[i]) { status = 'Controller linked'; claimable = false; }
-      else { status = mode === 'menu' ? 'Bot — open' : 'Bot (match live)'; claimable = mode === 'menu'; }
+      else { status = 'Open'; claimable = true; } 
       info.push({ index: i, status, claimable, color: PALETTE[i % PALETTE.length].body });
     }
     return info;
   }
-  function broadcastSlotsToPending() {
-    pendingGpConns.forEach(c => { if (c.open) c.send({ type:'gp-slots', slots: slotInfo() }); });
-  }
+  function broadcastSlotsToPending() { pendingGpConns.forEach(c => { if (c.open) c.send({ type:'gp-slots', slots: slotInfo() }); }); }
+  
   function updateLobbyText() {
+    if(partyMode) return; // Party mode handles UI separately
     const gpCount = Object.values(gamepadSlots).filter(Boolean).length;
     document.getElementById('lobby-players').innerText = `Players: ${hostConnections.length + 1} / 4` + (gpCount ? ` · 🎮 ${gpCount} phone controller${gpCount > 1 ? 's' : ''} linked` : '');
     broadcastSlotsToPending();
   }
-  window.updateLobbyColor = () => {};
 
   function syncClient(s) {
     if (bomb && s.bomb) {
       if (bomb.holder !== s.bomb.holder) { const o = ents[s.bomb.holder]; puff(o.x, o.y-34, 16, '#FFB020', 240); if(CFG.shake) shake = 7; SND.tag(pan(o)); }
       if (bomb.time > 0 && s.bomb.time <= 0) { blast(ents[bomb.holder].renderX, ents[bomb.holder].renderY-34); SND.sizzleOff(); }
     }
-    
     bomb = s.bomb; slowmo = s.slowmo;
     for(let i=0; i<4; i++){
        const target = s.ents[i];
        if(Math.hypot(ents[i].x - target.x, ents[i].y - target.y) > 100) { ents[i].x = target.x; ents[i].y = target.y; ents[i].renderX = target.x; ents[i].renderY = target.y; }
        else { ents[i].x = target.x; ents[i].y = target.y; }
-       ents[i].vx = target.vx; ents[i].vy = target.vy;
-       ents[i].facing = target.facing; ents[i].state = target.state; ents[i].alive = target.alive;
+       ents[i].vx = target.vx; ents[i].vy = target.vy; ents[i].facing = target.facing; ents[i].state = target.state; ents[i].alive = target.alive;
     }
-    
     if (mode !== s.mode) {
       mode = s.mode;
       if (mode === 'over') { endGame(ents.find(e => e.alive)); }
@@ -972,8 +998,7 @@
   window.startMPGame = () => {
     activeSlotColors = [0,1,2,3].map(i => {
       if (i === 0) return myColorIdx;
-      const c = hostConnections.find(c => c.index === i);
-      return c ? c.color : i;
+      const c = hostConnections.find(c => c.index === i); return c ? c.color : i;
     });
     document.getElementById('ui-layer').classList.add('hidden');
     hostConnections.forEach(c => c.conn.send({ type: 'start', colors: activeSlotColors }));
@@ -982,16 +1007,15 @@
 
   window.disconnectMP = () => {
     if(peer) peer.destroy();
-    isNetwork = false; hostConnections = []; hostConn = null;
+    isNetwork = false; isHost = false; partyMode = false; hostConnections = []; hostConn = null;
     gamepadSlots = {0:null,1:null,2:null,3:null}; gamepadInputBySlot = {0:null,1:null,2:null,3:null}; pendingGpConns = new Set();
     document.getElementById('btn-host').disabled = false; document.getElementById('btn-join').disabled = false; document.getElementById('mp-status').innerText = "";
     nav('v-main');
   };
 
   window.startGame = () => {
-    SND.wake(); isNetwork = false; myIndex = 0;
-    document.getElementById('ui-layer').classList.add('hidden');
-    resetGame();
+    SND.wake(); isNetwork = false; myIndex = 0; partyMode = false;
+    document.getElementById('ui-layer').classList.add('hidden'); resetGame();
   };
   window.resumeGame = () => { mode = 'play'; document.getElementById('ui-layer').classList.add('hidden'); };
   window.quitGame = () => { mode = 'menu'; SND.musicStop(); SND.sizzleOff(); document.getElementById('banner').style.opacity=0; updateScore(round); nav('v-main'); };
@@ -999,7 +1023,7 @@
   function endGame(winner) {
     document.getElementById('ui-layer').classList.remove('hidden');
     const won = winner && winner.i === myIndex;
-    document.getElementById('end-title').innerText = winner ? (won ? "Victory!" : `${winner.name} Wins!`) : "Draw!";
+    document.getElementById('end-title').innerText = winner ? (won || partyMode ? `${winner.name} Wins!` : "Victory!") : "Draw!";
     document.getElementById('end-desc').innerText = `Survived ${round} rounds.`;
     
     let statsHTML = '';
@@ -1008,8 +1032,7 @@
     } else statsHTML = 'Stats only available to host.';
     document.getElementById('end-stats').innerHTML = statsHTML;
     
-    nav('v-end'); SND.sizzleOff(); SND.end(won);
-    if(!isNetwork) updateScore(round);
+    nav('v-end'); SND.sizzleOff(); SND.end(won); if(!isNetwork) updateScore(round);
   }
 
   const SKY = []; for (let i = 0, x = -30; x < W + 60; i++) { const bw = 48 + Math.random()*62; SKY.push({x, w:bw, h:70 + Math.random()*150}); x += bw + 6 + Math.random()*22; }
@@ -1055,14 +1078,11 @@
     if(e.immuneCd > 0) { ctx.fillStyle = `rgba(56,225,255,${e.immuneCd})`; ctx.beginPath(); ctx.arc(1.5, headY, 14, 0, 6.28); ctx.fill(); }
 
     limb(0, shoY, arms[0].sa, 13, arms[0].ea, 13, 7.5, e.body, OUT);
-    ctx.restore();
-    limb(0, hipY, legs[0].ta, 16, legs[0].sa, 16, 9.5, e.body, OUT);
-    ctx.restore();
+    ctx.restore(); limb(0, hipY, legs[0].ta, 16, legs[0].sa, 16, 9.5, e.body, OUT); ctx.restore();
   }
 
   function render(t){
-    ctx.save(); 
-    if(shake > .2) ctx.translate((Math.random()-.5)*shake, (Math.random()-.5)*shake);
+    ctx.save(); if(shake > .2) ctx.translate((Math.random()-.5)*shake, (Math.random()-.5)*shake);
     
     const bgGrad = ctx.createLinearGradient(0,0,0,H); bgGrad.addColorStop(0,'#2C1553'); bgGrad.addColorStop(.55,'#4A2570'); bgGrad.addColorStop(1,'#140822');
     ctx.fillStyle = bgGrad; ctx.fillRect(0,0,W,H);
@@ -1082,7 +1102,10 @@
     ctx.font = '700 12px "Baloo 2", sans-serif'; ctx.textAlign='center';
     for(const e of ents){
       if(!e.alive) continue;
-      if(e.i === myIndex){ ctx.fillStyle='rgba(56,225,255,.9)'; ctx.beginPath(); ctx.moveTo(e.renderX, e.renderY-86); ctx.lineTo(e.renderX-6, e.renderY-96); ctx.lineTo(e.renderX+6, e.renderY-96); ctx.fill(); }
+      if(e.i === myIndex && !partyMode){ ctx.fillStyle='rgba(56,225,255,.9)'; ctx.beginPath(); ctx.moveTo(e.renderX, e.renderY-86); ctx.lineTo(e.renderX-6, e.renderY-96); ctx.lineTo(e.renderX+6, e.renderY-96); ctx.fill(); }
+      else if(partyMode) {
+        if(e.i === 0 || gamepadSlots[e.i]) { ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillText(`P${e.i+1}`, e.renderX, e.renderY-86); }
+      }
       else if(isNetwork) { ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillText(`P${e.i+1}`, e.renderX, e.renderY-86); }
     }
     
@@ -1110,7 +1133,7 @@
     let ry = 34;
     for(const e of ents){
       ctx.globalAlpha = e.alive?1:.25; ctx.fillStyle=e.body; ctx.beginPath(); ctx.arc(W-126, ry-5, 6, 0, 6.28); ctx.fill();
-      ctx.fillStyle = e.alive?'#EFE4FF':'#7C6AA3'; ctx.fillText(e.i === myIndex ? e.name+' (You)' : e.name, W-112, ry);
+      ctx.fillStyle = e.alive?'#EFE4FF':'#7C6AA3'; ctx.fillText(partyMode ? `P${e.i+1}` : (e.i === myIndex ? e.name+' (You)' : e.name), W-112, ry);
       if(bomb && bomb.holder === e.i && e.alive){ ctx.fillStyle='#FFB020'; ctx.beginPath(); ctx.arc(W-142, ry-5, 3.5, 0, 6.28); ctx.fill(); }
       ry+=22; ctx.globalAlpha = 1;
     }
@@ -1125,17 +1148,12 @@
     if (isGamepadMode) {
       if (gamepadConn && gamepadConn.open && mySlot != null) {
         const currentTouchStr = JSON.stringify(touchState);
-        if(currentTouchStr !== lastTouchStateStr) {
-          gamepadConn.send({ type: 'ctrl-input', slot: mySlot, input: touchState });
-          lastTouchStateStr = currentTouchStr;
-        }
+        if(currentTouchStr !== lastTouchStateStr) { gamepadConn.send({ type: 'ctrl-input', slot: mySlot, input: touchState }); lastTouchStateStr = currentTouchStr; }
       }
-      requestAnimationFrame(frame);
-      return;
+      requestAnimationFrame(frame); return;
     }
     
-    update(dt); SND.musicPump(); render(now / 1000);
-    requestAnimationFrame(frame);
+    update(dt); SND.musicPump(); render(now / 1000); requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
   
