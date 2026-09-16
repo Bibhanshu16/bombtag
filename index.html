@@ -43,7 +43,7 @@
   .panel {
     background: var(--panel); border: 2px solid var(--edge); border-radius: 16px;
     padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 90%; max-width: 440px;
-    box-shadow: 0 16px 40px rgba(0,0,0,.6); text-align: center; max-height: 90vh; overflow-y:auto;
+    box-shadow: 0 16px 40px rgba(0,0,0,.6); text-align: center; max-height: 95vh; overflow-y:auto;
   }
   .panel h2 { font-family:var(--display); font-size:32px; margin:0; color:var(--cyan); line-height: 1; }
   
@@ -69,8 +69,9 @@
     letter-spacing: 4px;
   }
 
-  label { font-size:14px; font-weight:bold; color:var(--ink-dim); display:flex; justify-content:space-between; }
+  label { font-size:14px; font-weight:bold; color:var(--ink-dim); display:flex; justify-content:space-between; align-items: center; }
   input[type="range"] { accent-color: var(--cyan); width: 100%; }
+  input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--cyan); }
   .key-bind { background:rgba(255,255,255,.1); padding:6px 12px; border-radius:8px; cursor:pointer; font-family:monospace; }
   
   /* Virtual Gamepad Controls */
@@ -152,7 +153,7 @@
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
-  <!-- View: Setup SP / Online Match -->
+  <!-- View: Setup SP -->
   <div class="panel view" id="v-setup" style="display:none;">
     <h2>Match Setup</h2>
     <div class="col">
@@ -179,14 +180,24 @@
   <!-- View: Local Party Lobby (Host) -->
   <div class="panel view" id="v-party" style="display:none;">
     <h2>Local Party</h2>
-    <p style="font-size:14px; color:var(--ink-dim); margin:0;">Tell your friends to join on their phones, click <b>Join Gamepad</b>, and enter this code:</p>
+    <p style="font-size:14px; color:var(--ink-dim); margin:0;">Tell friends to click <b>Join Gamepad</b> on their phones and enter code:</p>
     <h1 style="font-size:52px; margin:5px 0; color:var(--cyan); letter-spacing:4px;" id="party-code">----</h1>
     
-    <div class="col" style="text-align:left; background:rgba(0,0,0,0.3); padding:15px; border-radius:12px; font-weight:bold;">
-      <div id="p-slot-0" style="color:#38E1FF">🟢 P1: Keyboard / Gamepad</div>
-      <div id="p-slot-1" style="color:#B6A6D8">⚪ P2: AI Bot (Waiting for Phone)</div>
-      <div id="p-slot-2" style="color:#B6A6D8">⚪ P3: AI Bot (Waiting for Phone)</div>
-      <div id="p-slot-3" style="color:#B6A6D8">⚪ P4: AI Bot (Waiting for Phone)</div>
+    <div class="col" style="margin-bottom:10px; border-bottom: 1px solid var(--edge); padding-bottom: 10px;">
+      <label>Map: <span id="party-lbl-map">Classic</span></label>
+      <input type="range" id="party-set-map" min="0" max="2" value="0" oninput="document.getElementById('party-lbl-map').innerText=['Classic', 'Twin Peaks', 'Flatlands'][this.value]">
+      
+      <label style="margin-top:5px;">Fill empty with Bots <input type="checkbox" id="party-use-bots" checked onchange="updatePartyLobby()"></label>
+      
+      <label style="margin-top:5px;">Bot Difficulty: <span id="party-lbl-diff">Normal</span></label>
+      <input type="range" id="party-set-diff" min="0" max="2" value="1" oninput="document.getElementById('party-lbl-diff').innerText=['Easy', 'Normal', 'Hard'][this.value]">
+    </div>
+
+    <div class="col" style="text-align:left; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; font-weight:bold; font-size:14px;">
+      <div id="p-slot-0">🟢 P1: Keyboard (Waiting for Phone)</div>
+      <div id="p-slot-1">⚪ P2: AI Bot (Waiting for Phone)</div>
+      <div id="p-slot-2">⚪ P3: AI Bot (Waiting for Phone)</div>
+      <div id="p-slot-3">⚪ P4: AI Bot (Waiting for Phone)</div>
     </div>
     
     <button class="btn primary" id="btn-start-party" onclick="startMPGame()">Start Match</button>
@@ -245,6 +256,17 @@
       <label>Sprint <span class="key-bind" id="bind-S" onclick="bindKey('S')">SHIFT</span></label>
     </div>
     <button class="btn secondary" style="margin-top:10px;" onclick="saveSettings(); nav('v-main')">Save & Back</button>
+  </div>
+
+  <!-- View: Info -->
+  <div class="panel view" id="v-htp" style="display:none;">
+    <h2>How to Play</h2>
+    <p style="font-size:14px; text-align:left; color:var(--ink-dim);">
+      <b>Objective:</b> Don't be holding the bomb when the fuse runs out.<br><br>
+      <b>Tagging:</b> Run into another player to pass the bomb. The tagged player gets a brief immunity shield.<br><br>
+      <b>Controls:</b> Use Keyboard or on-screen Touch controls. Sprinting makes you faster but harder to stop.
+    </p>
+    <button class="btn secondary" onclick="nav('v-main')">Back</button>
   </div>
 
   <!-- View: Pause -->
@@ -529,18 +551,29 @@
   }
 
   function resetGame() {
-    const mapIdx = parseInt(document.getElementById('set-map').value); currentMap = MAPS[mapIdx];
-    diffSetting = parseInt(document.getElementById('set-diff').value);
+    // Dynamic settings lookup depending on mode
+    const mapId = partyMode ? 'party-set-map' : 'set-map';
+    const diffId = partyMode ? 'party-set-diff' : 'set-diff';
+    
+    currentMap = MAPS[parseInt(document.getElementById(mapId).value)];
+    diffSetting = parseInt(document.getElementById(diffId).value);
     
     ents = []; const spawns = [[160,400], [800,400], [480,200], [480,400]];
     
     if (isNetwork) {
       if (partyMode) {
-        // Party Mode: Always spawn 4 players. If a slot has a gamepad, it's human. Else AI.
+        const useBots = document.getElementById('party-use-bots').checked;
         ents.push(spawn(0, spawns[0][0], spawns[0][1], false, myColorIdx));
         for(let i=1; i<4; i++){
-          const isBot = !gamepadSlots[i];
-          ents.push(spawn(i, spawns[i][0], spawns[i][1], isBot, i));
+          if (gamepadSlots[i]) {
+            ents.push(spawn(i, spawns[i][0], spawns[i][1], false, i));
+          } else if (useBots) {
+            ents.push(spawn(i, spawns[i][0], spawns[i][1], true, i));
+          } else {
+            let e = spawn(i, spawns[i][0], spawns[i][1], false, i);
+            e.alive = false; 
+            ents.push(e);
+          }
         }
       } else {
         // Online MP: Only spawn active connections
@@ -799,15 +832,33 @@
     });
   };
 
-  function updatePartyLobby() {
+  window.updatePartyLobby = () => {
     if (!partyMode) return;
+    const useBots = document.getElementById('party-use-bots').checked;
+    let humanCount = 1; // P1 is always active (Keyboard or Gamepad)
+
+    const el0 = document.getElementById('p-slot-0');
+    if(gamepadSlots[0]) el0.innerHTML = `<span style="color:var(--cyan)">🟢 P1: Gamepad Connected</span>`;
+    else el0.innerHTML = `<span style="color:var(--cyan)">🟢 P1: Host Keyboard (Open for Gamepad)</span>`;
+
     for(let i=1; i<4; i++){
       const el = document.getElementById(`p-slot-${i}`);
-      if(gamepadSlots[i]) el.innerHTML = `🟢 P${i+1}: Gamepad Connected`;
-      else el.innerHTML = `⚪ P${i+1}: AI Bot (Waiting for Phone)`;
+      if(gamepadSlots[i]) {
+        el.innerHTML = `<span style="color:var(--cyan)">🟢 P${i+1}: Gamepad Connected</span>`;
+        humanCount++;
+      } else {
+        el.innerHTML = `⚪ P${i+1}: ${useBots ? 'AI Bot' : 'Empty'} (Open for Gamepad)`;
+      }
+    }
+    
+    const btnStart = document.getElementById('btn-start-party');
+    if (!useBots && humanCount < 2) {
+      btnStart.disabled = true; btnStart.innerText = "Need more players...";
+    } else {
+      btnStart.disabled = false; btnStart.innerText = "Start Match";
     }
     broadcastSlotsToPending();
-  }
+  };
 
   window.hostGame = () => {
     if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
@@ -930,7 +981,7 @@
       const btn = document.createElement('button');
       btn.className = 'btn ' + (s.claimable ? 'primary' : 'secondary');
       btn.disabled = !s.claimable; btn.style.borderLeft = `8px solid ${s.color}`; btn.style.textAlign = 'left';
-      btn.innerText = (s.index === 0 ? 'Host' : `Player ${s.index + 1}`) + ' — ' + s.status;
+      btn.innerText = (s.index === 0 ? 'P1' : `P${s.index + 1}`) + ' — ' + s.status;
       btn.onclick = () => { if (gamepadConn && gamepadConn.open) gamepadConn.send({ type:'gp-claim', slot: s.index }); };
       list.appendChild(btn);
     });
@@ -938,7 +989,7 @@
 
   function enterControllerView(data) {
     mySlot = data.slot; isGamepadMode = true; lastTouchStateStr = "";
-    document.getElementById('btn-gp-disc').innerText = `Disconnect (${data.slot === 0 ? 'Host' : 'Player ' + (data.slot + 1)})`;
+    document.getElementById('btn-gp-disc').innerText = `Disconnect (P${data.slot + 1})`;
     document.getElementById('ui-layer').classList.add('hidden');
     document.getElementById('touch-controls').style.display = 'block'; document.getElementById('touch-controls').style.pointerEvents = 'auto';
     document.getElementById('btn-gp-disc').style.display = 'block';
@@ -955,12 +1006,13 @@
 
   function slotInfo() {
     const info = [];
+    const useBots = partyMode ? document.getElementById('party-use-bots').checked : true;
     for (let i = 0; i < 4; i++) {
       let status, claimable;
-      if (i === 0) { status = gamepadSlots[0] ? 'Controller linked' : 'Host Keyboard'; claimable = !gamepadSlots[0]; }
+      if (i === 0) { status = gamepadSlots[0] ? 'Linked' : 'Host Keyboard'; claimable = !gamepadSlots[0] && (mode==='menu'||mode==='over'); }
       else if (hostConnections.some(c => c.index === i)) { status = 'Online Player'; claimable = false; }
-      else if (gamepadSlots[i]) { status = 'Controller linked'; claimable = false; }
-      else { status = 'Open'; claimable = true; } 
+      else if (gamepadSlots[i]) { status = 'Linked'; claimable = false; }
+      else { status = useBots ? 'Bot (Open)' : 'Empty (Open)'; claimable = mode === 'menu' || mode === 'over'; } 
       info.push({ index: i, status, claimable, color: PALETTE[i % PALETTE.length].body });
     }
     return info;
@@ -968,7 +1020,7 @@
   function broadcastSlotsToPending() { pendingGpConns.forEach(c => { if (c.open) c.send({ type:'gp-slots', slots: slotInfo() }); }); }
   
   function updateLobbyText() {
-    if(partyMode) return; // Party mode handles UI separately
+    if(partyMode) return; 
     const gpCount = Object.values(gamepadSlots).filter(Boolean).length;
     document.getElementById('lobby-players').innerText = `Players: ${hostConnections.length + 1} / 4` + (gpCount ? ` · 🎮 ${gpCount} phone controller${gpCount > 1 ? 's' : ''} linked` : '');
     broadcastSlotsToPending();
