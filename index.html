@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
 <!-- PeerJS for WebRTC Multiplayer -->
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
   :root{
     --ink:#F4ECFF; --ink-dim:#B6A6D8; --page:#120C24; --edge:rgba(255,255,255,.14);
@@ -173,11 +173,20 @@
   <!-- View: Gamepad Mode -->
   <div class="panel view" id="v-gamepad" style="display:none;">
     <h2>Virtual Gamepad</h2>
-    <p style="font-size:14px; color:var(--ink-dim); text-align:left;">Host a multiplayer room on your PC, then enter the code here to use this phone as the controller.</p>
+    <p style="font-size:14px; color:var(--ink-dim); text-align:left;">Host or join a multiplayer room on another device, then enter the room code here. You'll pick which player this phone controls — the host, or any open bot slot.</p>
     <input type="text" id="gamepad-code" placeholder="ENTER ROOM CODE" maxlength="4">
     <button class="btn primary" id="btn-connect-gp" onclick="connectGamepad()">Connect Controller</button>
     <p id="gp-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
+  </div>
+
+  <!-- View: Gamepad Slot Select -->
+  <div class="panel view" id="v-gp-select" style="display:none;">
+    <h2>Choose Player</h2>
+    <p style="font-size:14px;color:var(--ink-dim); margin:0;">Pick who this phone will control.</p>
+    <div class="col" id="gp-slot-list"></div>
+    <p id="gp-select-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
+    <button class="btn secondary" onclick="disconnectGamepad()">Cancel</button>
   </div>
 
   <!-- View: Lobby -->
@@ -287,6 +296,7 @@
     document.getElementById('char-color-box').style.background = PALETTE[myColorIdx].body;
     document.getElementById('char-name-display').innerText = PALETTE[myColorIdx].name;
     document.getElementById('lobby-my-color').innerText = PALETTE[myColorIdx].name;
+    if (isNetwork && !isHost && hostConn && hostConn.open) hostConn.send({ type:'color', color: myColorIdx });
   };
   window.confirmChar = () => { nav(uiContext.next || 'v-main'); };
 
@@ -379,8 +389,9 @@
   addEventListener('keydown', e => {
     SND.wake(); const k = e.key.toLowerCase();
     if (bindingKey) {
-      if(k!=='escape') { CFG.keys[bindingKey] = k; saveSettings(); document.getElementById(`bind-${bindingKey}`).innerText = k.toUpperCase(); }
-      bindingKey = null; document.getElementById(`bind-${bindingKey}`).style.color = 'var(--ink-dim)'; e.preventDefault(); return;
+      const bindEl = document.getElementById(`bind-${bindingKey}`);
+      if(k!=='escape') { CFG.keys[bindingKey] = k; saveSettings(); bindEl.innerText = k.toUpperCase(); }
+      bindEl.style.color = 'var(--ink-dim)'; bindingKey = null; e.preventDefault(); return;
     }
     keys[k] = true;
     if ([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) e.preventDefault();
@@ -444,17 +455,17 @@
   }
 
   function getLocalInput() {
-    const kb = {
+    return {
       L: keys[CFG.keys.L] || keys['arrowleft'] || touchState.L,
       R: keys[CFG.keys.R] || keys['arrowright'] || touchState.R,
       run: keys[CFG.keys.S] || touchState.run,
       jump: keys[CFG.keys.J] || keys['arrowup'] || keys[' '] || touchState.jump,
       drop: keys['s'] || keys['arrowdown'] || touchState.drop
     };
-    if (remoteInput) {
-      return { L: kb.L || remoteInput.L, R: kb.R || remoteInput.R, run: kb.run || remoteInput.run, jump: kb.jump || remoteInput.jump, drop: kb.drop || remoteInput.drop };
-    }
-    return kb;
+  }
+  function mergeInput(a, b) {
+    if (!b) return a;
+    return { L: a.L||b.L, R: a.R||b.R, run: a.run||b.run, jump: a.jump||b.jump, drop: a.drop||b.drop };
   }
 
   const W = 960, H = 540, HW = 13, BODY_H = 70;
@@ -481,9 +492,12 @@
   let isNetwork = false, isHost = false, peer = null, myIndex = 0;
   let hostConnections = [], hostConn = null, networkInputs = { 1:{}, 2:{}, 3:{} };
   let lastSyncTime = 0, roomCode = '';
-  
-  let isGamepadMode = false, gamepadConn = null;
-  let remoteControllerConn = null, remoteInput = null;
+  let activeSlotColors = null;
+
+  let isGamepadMode = false, gamepadConn = null, mySlot = null;
+  let gamepadSlots = {0:null, 1:null, 2:null, 3:null};
+  let gamepadInputBySlot = {0:null, 1:null, 2:null, 3:null};
+  let pendingGpConns = new Set();
   let lastTouchStateStr = "";
 
   function spawn(i, x, y, isAI, colorIdx){
@@ -502,10 +516,11 @@
     ents = []; const spawns = [[160,400], [800,400], [480,200], [480,400]];
     
     if (isNetwork) {
-      const active = [0, ...hostConnections.map(c => c.index)];
+      const active = [0];
+      for(let i=1; i<4; i++){ if(hostConnections.some(c => c.index === i) || (isHost && gamepadSlots[i])) active.push(i); }
       for(let i=0; i<4; i++){
-        if(active.includes(i)) ents.push(spawn(i, spawns[i][0], spawns[i][1], false, i===myIndex ? myColorIdx : i));
-        else ents.push(spawn(i, spawns[i][0], spawns[i][1], false, i));
+        const col = (activeSlotColors && activeSlotColors[i] != null) ? activeSlotColors[i] : (i===myIndex ? myColorIdx : i);
+        ents.push(spawn(i, spawns[i][0], spawns[i][1], false, col));
       }
       if(isHost) { ents.forEach(e => { if(!active.includes(e.i)) e.alive = false; }); }
     } else {
@@ -627,11 +642,17 @@
       if (!e.alive) continue;
       if (mode === 'play') {
         e.passCd = Math.max(0, e.passCd - dt); e.immuneCd = Math.max(0, e.immuneCd - dt);
-        if (e.i === myIndex && (!isNetwork || isHost)) applyInput(e, getLocalInput());
-        else if (isNetwork && isHost && hostConnections.find(c => c.index === e.i)) applyInput(e, networkInputs[e.i]);
-        else if (e.isAI && (!isNetwork || isHost)) {
-          e.think -= dt; if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); }
-        } else e.wantJump = false;
+        if (!isNetwork) {
+          if (e.i === myIndex) applyInput(e, getLocalInput());
+          else if (e.isAI) { e.think -= dt; if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); } }
+        } else if (isHost) {
+          if (e.i === 0) applyInput(e, mergeInput(getLocalInput(), gamepadInputBySlot[0]));
+          else if (hostConnections.find(c => c.index === e.i)) applyInput(e, networkInputs[e.i]);
+          else if (gamepadSlots[e.i]) applyInput(e, gamepadInputBySlot[e.i]);
+          else if (e.isAI) { e.think -= dt; if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); } }
+        } else {
+          e.wantJump = false;
+        }
       } else { e.wantDir = 0; e.wantJump = false; }
       stepBody(e, dt);
     }
@@ -763,20 +784,39 @@
       conn.on('data', data => {
         if (data.type === 'join') {
           if (data.mode === 'gamepad') {
-            remoteControllerConn = conn;
+            pendingGpConns.add(conn);
+            conn.send({ type:'gp-slots', slots: slotInfo() });
           } else {
             if(hostConnections.length >= 3 || mode !== 'menu') { conn.send({type:'error'}); setTimeout(()=>conn.close(), 500); return; }
             const nextIdx = [1,2,3].find(i => !hostConnections.some(c => c.index === i));
-            hostConnections.push({ conn, index: nextIdx });
+            hostConnections.push({ conn, index: nextIdx, color: data.color != null ? data.color : nextIdx });
             conn.send({ type:'welcome', index: nextIdx });
             updateLobbyText();
           }
         }
-        if (data.type === 'ctrl-input' && conn === remoteControllerConn) { remoteInput = data.input; }
+        if (data.type === 'color') {
+          const c = hostConnections.find(c => c.conn === conn); if (c) c.color = data.color;
+        }
+        if (data.type === 'gp-claim') {
+          const info = slotInfo().find(s => s.index === data.slot);
+          if (info && info.claimable) {
+            gamepadSlots[data.slot] = conn; gamepadInputBySlot[data.slot] = null;
+            pendingGpConns.delete(conn);
+            conn.send({ type:'gp-welcome', slot: data.slot, color: PALETTE[data.slot % PALETTE.length].body, name: PALETTE[data.slot % PALETTE.length].name });
+            updateLobbyText();
+          } else {
+            conn.send({ type:'gp-taken' });
+            conn.send({ type:'gp-slots', slots: slotInfo() });
+          }
+        }
+        if (data.type === 'ctrl-input') {
+          for (const k in gamepadSlots) { if (gamepadSlots[k] === conn) gamepadInputBySlot[k] = data.input; }
+        }
         if (data.type === 'input') { networkInputs[conn.index] = data.input; }
       });
       conn.on('close', () => { 
-        if (conn === remoteControllerConn) remoteControllerConn = null;
+        for (const k in gamepadSlots) { if (gamepadSlots[k] === conn) gamepadSlots[k] = null; }
+        pendingGpConns.delete(conn);
         hostConnections = hostConnections.filter(c => c.conn !== conn); 
         updateLobbyText(); 
       });
@@ -797,7 +837,7 @@
     peer.on('open', () => {
       hostConn = peer.connect('btag-' + code);
       hostConn.on('open', () => {
-        hostConn.send({type: 'join', mode: 'player'});
+        hostConn.send({type: 'join', mode: 'player', color: myColorIdx});
         isNetwork = true; isHost = false;
         document.getElementById('lobby-code').innerText = code;
         document.getElementById('btn-start-mp').style.display = 'none'; document.getElementById('lobby-wait').style.display = 'block';
@@ -806,7 +846,7 @@
       });
       hostConn.on('data', data => {
         if (data.type === 'welcome') { myIndex = data.index; }
-        if (data.type === 'start') { document.getElementById('ui-layer').classList.add('hidden'); resetGame(); }
+        if (data.type === 'start') { activeSlotColors = data.colors || null; document.getElementById('ui-layer').classList.add('hidden'); resetGame(); }
         if (data.type === 'sync') { syncClient(data.state); }
         if (data.type === 'error') { alert("Room full or in progress."); disconnectMP(); }
       });
@@ -824,38 +864,85 @@
   window.connectGamepad = () => {
     const code = document.getElementById('gamepad-code').value.toUpperCase(); if(code.length !== 4) return;
     document.getElementById('gp-status').innerText = "Connecting...";
+    document.getElementById('btn-connect-gp').disabled = true;
     peer = createPeer();
     
     peer.on('open', () => {
       gamepadConn = peer.connect('btag-' + code);
       gamepadConn.on('open', () => {
         gamepadConn.send({type: 'join', mode: 'gamepad'});
-        isGamepadMode = true;
-        document.getElementById('ui-layer').classList.add('hidden');
-        document.getElementById('touch-controls').style.display = 'block';
-        document.getElementById('touch-controls').style.pointerEvents = 'auto'; 
-        document.getElementById('btn-gp-disc').style.display = 'block';
-        document.getElementById('stage').style.display = 'none'; 
-        document.body.style.background = '#000'; 
+        document.getElementById('gp-status').innerText = "";
+      });
+      gamepadConn.on('data', data => {
+        if (data.type === 'gp-slots') renderSlotPicker(data.slots);
+        if (data.type === 'gp-taken') { document.getElementById('gp-select-status').innerText = "That player was just taken — pick another."; }
+        if (data.type === 'gp-welcome') enterControllerView(data);
       });
       gamepadConn.on('close', () => { alert("Host disconnected."); disconnectGamepad(); });
-      gamepadConn.on('error', () => { document.getElementById('gp-status').innerText = "Host connection lost."; });
+      gamepadConn.on('error', () => { document.getElementById('gp-status').innerText = "Host connection lost."; document.getElementById('btn-connect-gp').disabled = false; });
     });
-    peer.on('error', err => { document.getElementById('gp-status').innerText = "Room not found."; });
+    peer.on('error', err => { document.getElementById('gp-status').innerText = "Room not found."; document.getElementById('btn-connect-gp').disabled = false; });
   };
+
+  function renderSlotPicker(slots) {
+    nav('v-gp-select');
+    document.getElementById('gp-select-status').innerText = "";
+    const list = document.getElementById('gp-slot-list'); list.innerHTML = '';
+    slots.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'btn ' + (s.claimable ? 'primary' : 'secondary');
+      btn.disabled = !s.claimable;
+      btn.style.borderLeft = `8px solid ${s.color}`;
+      btn.style.textAlign = 'left';
+      btn.innerText = (s.index === 0 ? 'Host' : `Player ${s.index + 1}`) + ' — ' + s.status;
+      btn.onclick = () => { if (gamepadConn && gamepadConn.open) gamepadConn.send({ type:'gp-claim', slot: s.index }); };
+      list.appendChild(btn);
+    });
+  }
+
+  function enterControllerView(data) {
+    mySlot = data.slot; isGamepadMode = true; lastTouchStateStr = "";
+    document.getElementById('btn-gp-disc').innerText = `Disconnect (${data.slot === 0 ? 'Host' : 'Player ' + (data.slot + 1)})`;
+    document.getElementById('ui-layer').classList.add('hidden');
+    document.getElementById('touch-controls').style.display = 'block';
+    document.getElementById('touch-controls').style.pointerEvents = 'auto';
+    document.getElementById('btn-gp-disc').style.display = 'block';
+    document.getElementById('stage').style.display = 'none';
+    document.body.style.background = '#000';
+  }
 
   window.disconnectGamepad = () => {
     if(peer) peer.destroy();
-    isGamepadMode = false; gamepadConn = null; lastTouchStateStr = "";
+    isGamepadMode = false; gamepadConn = null; mySlot = null; lastTouchStateStr = "";
     document.getElementById('touch-controls').style.display = 'none';
     document.getElementById('touch-controls').style.pointerEvents = 'none'; 
     document.getElementById('btn-gp-disc').style.display = 'none';
     document.getElementById('stage').style.display = 'block'; 
     document.body.style.background = 'var(--page)';
+    document.getElementById('btn-connect-gp').disabled = false;
     nav('v-main');
   }
 
-  function updateLobbyText() { document.getElementById('lobby-players').innerText = `Players: ${hostConnections.length + 1} / 4`; }
+  function slotInfo() {
+    const info = [];
+    for (let i = 0; i < 4; i++) {
+      let status, claimable;
+      if (i === 0) { status = gamepadSlots[0] ? 'Controller linked' : 'Host'; claimable = !gamepadSlots[0]; }
+      else if (hostConnections.some(c => c.index === i)) { status = 'Player joined'; claimable = false; }
+      else if (gamepadSlots[i]) { status = 'Controller linked'; claimable = false; }
+      else { status = mode === 'menu' ? 'Bot — open' : 'Bot (match live)'; claimable = mode === 'menu'; }
+      info.push({ index: i, status, claimable, color: PALETTE[i % PALETTE.length].body });
+    }
+    return info;
+  }
+  function broadcastSlotsToPending() {
+    pendingGpConns.forEach(c => { if (c.open) c.send({ type:'gp-slots', slots: slotInfo() }); });
+  }
+  function updateLobbyText() {
+    const gpCount = Object.values(gamepadSlots).filter(Boolean).length;
+    document.getElementById('lobby-players').innerText = `Players: ${hostConnections.length + 1} / 4` + (gpCount ? ` · 🎮 ${gpCount} phone controller${gpCount > 1 ? 's' : ''} linked` : '');
+    broadcastSlotsToPending();
+  }
   window.updateLobbyColor = () => {};
 
   function syncClient(s) {
@@ -883,14 +970,20 @@
   }
 
   window.startMPGame = () => {
+    activeSlotColors = [0,1,2,3].map(i => {
+      if (i === 0) return myColorIdx;
+      const c = hostConnections.find(c => c.index === i);
+      return c ? c.color : i;
+    });
     document.getElementById('ui-layer').classList.add('hidden');
-    hostConnections.forEach(c => c.conn.send({ type: 'start' }));
+    hostConnections.forEach(c => c.conn.send({ type: 'start', colors: activeSlotColors }));
     resetGame();
   };
 
   window.disconnectMP = () => {
     if(peer) peer.destroy();
-    isNetwork = false; hostConnections = []; hostConn = null; remoteControllerConn = null; remoteInput = null;
+    isNetwork = false; hostConnections = []; hostConn = null;
+    gamepadSlots = {0:null,1:null,2:null,3:null}; gamepadInputBySlot = {0:null,1:null,2:null,3:null}; pendingGpConns = new Set();
     document.getElementById('btn-host').disabled = false; document.getElementById('btn-join').disabled = false; document.getElementById('mp-status').innerText = "";
     nav('v-main');
   };
@@ -1030,10 +1123,10 @@
     let dt = Math.min((now - last) / 1000, 0.05); last = now;
     
     if (isGamepadMode) {
-      if (gamepadConn && gamepadConn.open) {
+      if (gamepadConn && gamepadConn.open && mySlot != null) {
         const currentTouchStr = JSON.stringify(touchState);
         if(currentTouchStr !== lastTouchStateStr) {
-          gamepadConn.send({ type: 'ctrl-input', input: touchState });
+          gamepadConn.send({ type: 'ctrl-input', slot: mySlot, input: touchState });
           lastTouchStateStr = currentTouchStr;
         }
       }
