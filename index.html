@@ -86,6 +86,16 @@
   #btn-gp-disc { position:absolute; top:20px; left:50%; transform:translateX(-50%); width:auto; display:none; pointer-events:auto; font-size: 14px; padding: 8px 16px; }
 
   #banner { position:absolute; top:40%; left:0; width:100%; text-align:center; font-family:var(--display); font-size:60px; font-weight:800; color:var(--amber); text-shadow:0 4px 15px rgba(0,0,0,0.8); pointer-events:none; opacity:0; transition:opacity 0.2s; z-index:5; }
+  #toast {
+    position:fixed; top:18px; left:50%; z-index:60;
+    transform:translateX(-50%) translateY(-14px);
+    background:rgba(20,10,40,.95); border:1px solid var(--edge); color:var(--ink);
+    font-family:var(--display); font-weight:700; font-size:14px;
+    padding:10px 20px; border-radius:11px; box-shadow:0 10px 28px rgba(0,0,0,.55);
+    opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+    max-width:80vw; text-align:center;
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .char-preview { width:60px; height:60px; border-radius:50%; margin:0 auto; border:3px solid var(--edge); }
 
   /* 📱 PORTRAIT MOBILE LAYOUT (GAMEPAD MODE) 📱 */
@@ -112,6 +122,8 @@
   <canvas id="game" width="960" height="540"></canvas>
   <div id="banner">ROUND 1</div>
 </div>
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 <!-- Virtual Touch Controls -->
 <div id="touch-controls">
@@ -309,6 +321,15 @@
   ['L','R','J','S'].forEach(k => document.getElementById(`bind-${k}`).innerText = CFG.keys[k].toUpperCase());
   updateScore(0);
 
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
+  function showNotice(msg, ms) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms || 3200);
+  }
+
   let bindingKey = null;
   window.bindKey = (action) => {
     bindingKey = action;
@@ -424,6 +445,7 @@
   const keys = Object.create(null);
   const touchState = { L:false, R:false, run:false, jump:false, drop:false };
   let usingTouch = false;
+  let remoteInput = null; // reserved for a future remote-input source; currently always inert
 
   addEventListener('keydown', e => {
     SND.wake(); const k = e.key.toLowerCase();
@@ -446,7 +468,7 @@
   const knob = document.getElementById('joy-knob');
   let joyID = null, joyOrigin = {x:0, y:0};
 
-  function enableTouch() { if(!usingTouch && !isGamepadMode){ usingTouch=true; tc.style.display='block'; } SND.wake(); }
+  function enableTouch() { if(!usingTouch && !isGamepadMode && matchMedia('(pointer: coarse)').matches){ usingTouch=true; tc.style.display='block'; } SND.wake(); }
   addEventListener('touchstart', enableTouch, {once:true});
 
   tc.addEventListener('touchstart', e => {
@@ -514,7 +536,7 @@
   function fit() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = false;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = true;
   }
   fit(); addEventListener('resize', fit);
 
@@ -588,7 +610,8 @@
     } else {
       // Single Player
       ents.push(spawn(0, spawns[0][0], spawns[0][1], false, myColorIdx));
-      for(let i=1; i<4; i++) ents.push(spawn(i, spawns[i][0], spawns[i][1], true, i === myColorIdx ? (i+1)%4 : i));
+      const botColors = [0,1,2,3].filter(c => c !== myColorIdx);
+      for(let i=1; i<4; i++) ents.push(spawn(i, spawns[i][0], spawns[i][1], true, botColors[i-1]));
     }
 
     round = 1; parts = []; flashes = []; shake = 0; slowmo = 1; matchStats = { tags:[0,0,0,0], heldTime:[0,0,0,0] };
@@ -766,7 +789,7 @@
     if (isNetwork && isHost && !partyMode && performance.now() - lastSyncTime > 40) {
       lastSyncTime = performance.now();
       const state = {
-        mode, round, slowmo,
+        mode, round, slowmo, matchStats,
         bomb: bomb ? { holder: bomb.holder, time: bomb.time, max: bomb.max } : null,
         ents: ents.map(e => ({ x:e.x, y:e.y, vx:e.vx, vy:e.vy, facing:e.facing, state:e.state, alive:e.alive }))
       };
@@ -944,10 +967,10 @@
         if (data.type === 'welcome') { myIndex = data.index; }
         if (data.type === 'start') { activeSlotColors = data.colors || null; document.getElementById('ui-layer').classList.add('hidden'); resetGame(); }
         if (data.type === 'sync') { syncClient(data.state); }
-        if (data.type === 'error') { alert("Room full or in progress."); disconnectMP(); }
+        if (data.type === 'error') { showNotice("Room full or in progress."); disconnectMP(); }
       });
       hostConn.on('error', err => { document.getElementById('mp-status').innerText = "Host connection lost."; document.getElementById('btn-join').disabled = false; });
-      hostConn.on('close', () => { alert("Host disconnected."); disconnectMP(); });
+      hostConn.on('close', () => { showNotice("Host disconnected."); disconnectMP(); });
     });
     peer.on('error', err => {
       let errorMsg = "Connection failed."; if (err.type === 'peer-unavailable') errorMsg = "Room not found.";
@@ -968,7 +991,7 @@
         if (data.type === 'gp-taken') { document.getElementById('gp-select-status').innerText = "Player taken. Pick another."; }
         if (data.type === 'gp-welcome') enterControllerView(data);
       });
-      gamepadConn.on('close', () => { alert("Host disconnected."); disconnectGamepad(); });
+      gamepadConn.on('close', () => { showNotice("Host disconnected."); disconnectGamepad(); });
       gamepadConn.on('error', () => { document.getElementById('gp-status').innerText = "Host connection lost."; document.getElementById('btn-connect-gp').disabled = false; });
     });
     peer.on('error', err => { document.getElementById('gp-status').innerText = "Room not found."; document.getElementById('btn-connect-gp').disabled = false; });
@@ -1006,7 +1029,7 @@
 
   function slotInfo() {
     const info = [];
-    const useBots = partyMode ? document.getElementById('party-use-bots').checked : true;
+    const useBots = partyMode ? document.getElementById('party-use-bots').checked : false;
     for (let i = 0; i < 4; i++) {
       let status, claimable;
       if (i === 0) { status = gamepadSlots[0] ? 'Linked' : 'Host Keyboard'; claimable = !gamepadSlots[0] && (mode==='menu'||mode==='over'); }
@@ -1032,9 +1055,19 @@
       if (bomb.time > 0 && s.bomb.time <= 0) { blast(ents[bomb.holder].renderX, ents[bomb.holder].renderY-34); SND.sizzleOff(); }
     }
     bomb = s.bomb; slowmo = s.slowmo;
+    if (s.matchStats) matchStats = s.matchStats;
     for(let i=0; i<4; i++){
        const target = s.ents[i];
-       if(Math.hypot(ents[i].x - target.x, ents[i].y - target.y) > 100) { ents[i].x = target.x; ents[i].y = target.y; ents[i].renderX = target.x; ents[i].renderY = target.y; }
+       const drift = Math.hypot(ents[i].x - target.x, ents[i].y - target.y);
+       if (i === myIndex) {
+         // Trust local prediction for our own avatar so it stays smooth under normal
+         // latency; only snap to the host's copy if we've drifted a lot (e.g. a stall
+         // or dropped packets). Elimination is still host-authoritative.
+         if (drift > 140) { ents[i].x = target.x; ents[i].y = target.y; ents[i].renderX = target.x; ents[i].renderY = target.y; ents[i].vx = target.vx; ents[i].vy = target.vy; }
+         ents[i].alive = target.alive;
+         continue;
+       }
+       if(drift > 100) { ents[i].x = target.x; ents[i].y = target.y; ents[i].renderX = target.x; ents[i].renderY = target.y; }
        else { ents[i].x = target.x; ents[i].y = target.y; }
        ents[i].vx = target.vx; ents[i].vy = target.vy; ents[i].facing = target.facing; ents[i].state = target.state; ents[i].alive = target.alive;
     }
@@ -1078,16 +1111,33 @@
     document.getElementById('end-title').innerText = winner ? (won || partyMode ? `${winner.name} Wins!` : "Victory!") : "Draw!";
     document.getElementById('end-desc').innerText = `Survived ${round} rounds.`;
     
-    let statsHTML = '';
-    if(!isNetwork || isHost) {
-      statsHTML = ents.map(e => `<div><b style="color:${e.body}">${e.name}</b>: Tags: ${matchStats.tags[e.i]} | Bomb Time: ${matchStats.heldTime[e.i].toFixed(1)}s</div>`).join('');
-    } else statsHTML = 'Stats only available to host.';
+    const statsHTML = ents.map(e => `<div><b style="color:${e.body}">${e.name}</b>: Tags: ${matchStats.tags[e.i]} | Bomb Time: ${matchStats.heldTime[e.i].toFixed(1)}s</div>`).join('');
     document.getElementById('end-stats').innerHTML = statsHTML;
     
     nav('v-end'); SND.sizzleOff(); SND.end(won); if(!isNetwork) updateScore(round);
   }
 
   const SKY = []; for (let i = 0, x = -30; x < W + 60; i++) { const bw = 48 + Math.random()*62; SKY.push({x, w:bw, h:70 + Math.random()*150}); x += bw + 6 + Math.random()*22; }
+
+  function supportBelow(x, y){
+    let best = null;
+    for (const p of currentMap){
+      if (x < p.x - 6 || x > p.x + p.w + 6) continue;
+      if (p.y < y - 4) continue;
+      if (!best || p.y < best.y) best = p;
+    }
+    return best;
+  }
+  function drawShadow(e){
+    const ground = supportBelow(e.renderX, e.renderY);
+    if (!ground) return;
+    const gap = Math.max(0, ground.y - e.renderY);
+    const a = Math.max(0, .34 - gap / 700);
+    const r = 17 - gap / 40;
+    if (r <= 2) return;
+    ctx.fillStyle = `rgba(10,4,26,${a})`;
+    ctx.beginPath(); ctx.ellipse(e.renderX, ground.y + 1, r, r * .32, 0, 0, 6.28); ctx.fill();
+  }
 
   function limb(x0, y0, a1, l1, a2, l2, w, color, outline){
     const x1 = x0 + Math.sin(a1)*l1, y1 = y0 + Math.cos(a1)*l1, x2 = x1 + Math.sin(a2)*l2, y2 = y1 + Math.cos(a2)*l2;
@@ -1148,6 +1198,7 @@
 
     if(mode === 'menu') { ctx.restore(); return; }
 
+    ents.forEach(e => { if(e.alive) drawShadow(e); });
     ents.forEach(e => { if(e.alive && e.i !== myIndex) drawChar(e,t); });
     const me = ents[myIndex]; if(me && me.alive) drawChar(me,t);
     
