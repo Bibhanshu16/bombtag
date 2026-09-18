@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Bomb Tag - Multiplayer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,10 +12,11 @@
 <style>
   :root{
     --ink:#F4ECFF; --ink-dim:#B6A6D8; --page:#120C24; --edge:rgba(255,255,255,.14);
-    --hot:#FF3D7F; --amber:#FFB020; --cyan:#38E1FF; --panel:rgba(26,16,51,.9);
+    --hot:#FF3D7F; --amber:#FFB020; --cyan:#38E1FF; --panel:rgba(26,16,51,.95);
     --display:"Baloo 2",system-ui,sans-serif; --body:system-ui,-apple-system,sans-serif;
   }
-  *{box-sizing:border-box; user-select:none;} html,body{height:100%; margin:0; overflow:hidden;}
+  *{box-sizing:border-box; user-select:none; -webkit-touch-callout:none;}
+  html,body{height:100%; margin:0; overflow:hidden;}
   body{
     background:var(--page); color:var(--ink); font-family:var(--body);
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -36,20 +37,20 @@
   .overlay{
     position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:radial-gradient(120% 120% at 50% 20%, rgba(36,20,71,.72), rgba(11,6,26,.95));
-    backdrop-filter:blur(4px); z-index:20; transition: opacity 0.2s;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); z-index:20; transition: opacity 0.25s;
   }
   .overlay.hidden { opacity: 0; pointer-events: none; }
   
   .panel {
-    background: var(--panel); border: 2px solid var(--edge); border-radius: 16px;
-    padding: 24px; display: flex; flex-direction: column; gap: 16px; width: 90%; max-width: 440px;
-    box-shadow: 0 16px 40px rgba(0,0,0,.6); text-align: center; max-height: 95vh; overflow-y:auto;
+    background: var(--panel); border: 2px solid var(--edge); border-radius: 20px;
+    padding: 32px; display: flex; flex-direction: column; gap: 16px; width: 90%; max-width: 440px;
+    box-shadow: 0 24px 50px rgba(0,0,0,.7); text-align: center; max-height: 95vh; overflow-y:auto;
   }
   .panel h2 { font-family:var(--display); font-size:32px; margin:0; color:var(--cyan); line-height: 1; }
   
   button.btn {
     font-family:var(--display); font-weight:800; font-size:18px; color:#120C24; background:var(--ink);
-    border:0; border-radius:12px; padding:12px 24px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,0.3);
+    border:0; border-radius:12px; padding:14px 24px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,0.3);
     transition:transform .08s ease, box-shadow .08s ease; width:100%; touch-action: manipulation;
   }
   button.btn:hover{ transform:translateY(2px); box-shadow:0 4px 0 rgba(0,0,0,0.3); }
@@ -61,29 +62,70 @@
   button.btn:disabled { opacity:0.5; filter:grayscale(1); cursor:not-allowed; transform:none; box-shadow:0 6px 0 rgba(0,0,0,0.3); }
   
   .row { display:flex; gap:12px; width:100%; align-items:center; justify-content:space-between; }
-  .col { display:flex; flex-direction:column; gap:8px; width:100%; }
+  .col { display:flex; flex-direction:column; gap:10px; width:100%; }
   
   input[type="text"] {
     font-family:var(--display); font-weight:800; font-size:24px; text-transform:uppercase; text-align:center;
     padding:12px; border-radius:12px; border:2px solid var(--edge); background:rgba(0,0,0,0.4); color:var(--cyan); width:100%;
-    letter-spacing: 4px;
+    letter-spacing: 4px; outline:none; transition: border-color 0.2s;
   }
+  input[type="text"]:focus { border-color: var(--cyan); }
 
-  label { font-size:14px; font-weight:bold; color:var(--ink-dim); display:flex; justify-content:space-between; align-items: center; }
+  label { font-size:14px; font-weight:bold; color:var(--ink-dim); display:flex; justify-content:space-between; align-items: center; margin:0;}
   input[type="range"] { accent-color: var(--cyan); width: 100%; }
-  input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--cyan); }
+  input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--cyan); margin:0;}
   .key-bind { background:rgba(255,255,255,.1); padding:6px 12px; border-radius:8px; cursor:pointer; font-family:monospace; }
   
-  /* Virtual Gamepad Controls */
-  #touch-controls { position:fixed; inset:0; z-index:10; display:none; pointer-events:none; }
-  .v-stick-zone { position:absolute; bottom:40px; left:40px; width:140px; height:140px; pointer-events:auto; touch-action:none; }
-  .v-stick-bg { position:absolute; inset:0; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.15); }
-  .v-stick-knob { position:absolute; width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,0.5); top:40px; left:40px; transform:translate(0,0); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-  .v-btn { position:absolute; width:75px; height:75px; border-radius:50%; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.25); pointer-events:auto; display:grid; place-content:center; font-weight:800; font-size:15px; color:rgba(255,255,255,0.9); touch-action:none; transition: transform 0.1s, background 0.1s; }
-  .v-btn:active { background:rgba(255,255,255,0.4); transform:scale(0.92); color:white; }
-  #btn-jump { bottom:40px; right:40px; }
-  #btn-run { bottom:125px; right:115px; }
-  #btn-gp-disc { position:absolute; top:20px; left:50%; transform:translateX(-50%); width:auto; display:none; pointer-events:auto; font-size: 14px; padding: 8px 16px; }
+  /* 🎮 VIRTUAL GAMEPAD UI 🎮 */
+  #touch-controls { 
+    position:fixed; inset:0; z-index:10; display:none; pointer-events:none; 
+    background: radial-gradient(circle at center, #1a1a2e, #000); 
+  }
+  .tc-half { position:absolute; top:0; bottom:0; width:50%; pointer-events:auto; touch-action:none; }
+  #tc-left { left:0; }
+  #tc-right { right:0; display:flex; justify-content:flex-end; align-items:flex-end; padding: 40px; gap: 20px; }
+
+  /* Floating Joystick */
+  .v-stick-zone { position:absolute; width:160px; height:160px; transform:translate(-50%, -50%); opacity:0; transition:opacity 0.15s; pointer-events:none; }
+  .v-stick-bg { position:absolute; inset:0; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.15); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+  .v-stick-knob { position:absolute; width:70px; height:70px; border-radius:50%; background:linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); top:45px; left:45px; transform:translate(0,0); box-shadow: 0 8px 16px rgba(0,0,0,0.4); }
+  
+  /* Action Buttons */
+  .v-btn { 
+    width:90px; height:90px; border-radius:50%; background:rgba(255,255,255,0.1); border:3px solid rgba(255,255,255,0.2); 
+    pointer-events:auto; display:flex; align-items:center; justify-content:center; 
+    font-weight:800; font-size:18px; color:rgba(255,255,255,0.9); font-family:var(--display);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3), inset 0 4px 10px rgba(255,255,255,0.1); touch-action:none; 
+    transition: transform 0.05s, background 0.05s, border-color 0.05s;
+  }
+  .v-btn:active, .v-btn.active { background:rgba(255,255,255,0.3); transform:scale(0.92) translateY(4px); color:white; border-color:rgba(255,255,255,0.6); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+  #btn-run { margin-bottom: 70px; margin-right: 10px; }
+
+  /* Gamepad HUD */
+  #gp-hud { position:absolute; top:20px; left:0; width:100%; display:flex; justify-content:space-between; padding:0 30px; pointer-events:none; }
+  #btn-gp-disc { pointer-events:auto; font-size: 14px; padding: 10px 20px; box-shadow:none; width:auto; border:2px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5); color:white; }
+  #gp-player-tag { background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 20px; border: 2px solid var(--edge); font-family:var(--display); font-weight:bold; font-size:18px; display:flex; align-items:center; gap:10px; }
+  .gp-color-dot { width: 16px; height: 16px; border-radius: 50%; border:2px solid rgba(255,255,255,0.5); }
+
+  /* Orientation Lock Overlay */
+  #portrait-warning {
+    position:fixed; inset:0; background:#000; z-index:999; display:none; flex-direction:column; align-items:center; justify-content:center; color:white; font-family:var(--display); text-align:center; padding:20px;
+  }
+  #portrait-warning svg { width:60px; height:60px; fill:var(--cyan); margin-bottom:20px; animation: rotatePhone 1.5s infinite ease-in-out; }
+  @keyframes rotatePhone { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(-90deg); } }
+  
+  @media (orientation: portrait) {
+    .is-gamepad #portrait-warning { display:flex; }
+  }
+
+  /* Responsive Mobile Panels */
+  @media (max-width: 600px) {
+    .panel { padding: 20px 16px; width: 92%; max-width: 100%; border-radius: 16px; gap: 12px; }
+    .panel h2 { font-size: 26px; }
+    button.btn { padding: 12px 16px; font-size: 16px; }
+    input[type="text"] { font-size: 20px; padding: 10px; }
+    #v-main h1 span { font-size: 38px !important; }
+  }
 
   #banner { position:absolute; top:40%; left:0; width:100%; text-align:center; font-family:var(--display); font-size:60px; font-weight:800; color:var(--amber); text-shadow:0 4px 15px rgba(0,0,0,0.8); pointer-events:none; opacity:0; transition:opacity 0.2s; z-index:5; }
   #toast {
@@ -97,23 +139,6 @@
   }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .char-preview { width:60px; height:60px; border-radius:50%; margin:0 auto; border:3px solid var(--edge); }
-
-  /* 📱 PORTRAIT MOBILE LAYOUT (GAMEPAD MODE) 📱 */
-  @media (orientation: portrait) {
-    body { justify-content: flex-start; background: #080512; }
-    .stage { 
-      width: 100vw !important; height: calc(100vw * 9 / 16) !important; max-height: none !important; 
-      border-radius: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.9); flex-shrink: 0; 
-    }
-    
-    .v-stick-zone { bottom: 12vh; left: 8vw; width: 160px; height: 160px; }
-    .v-stick-knob { width: 70px; height: 70px; top: 45px; left: 45px; }
-    
-    .v-btn { width: 85px; height: 85px; font-size: 17px; }
-    #btn-jump { bottom: 12vh; right: 8vw; }
-    #btn-run { bottom: 26vh; right: 28vw; }
-    #btn-gp-disc { top: auto; bottom: 3vh; }
-  }
 </style>
 </head>
 <body>
@@ -127,13 +152,28 @@
 
 <!-- Virtual Touch Controls -->
 <div id="touch-controls">
-  <button id="btn-gp-disc" class="btn danger" onclick="disconnectGamepad()">Disconnect</button>
-  <div class="v-stick-zone" id="joystick">
-    <div class="v-stick-bg"></div>
-    <div class="v-stick-knob" id="joy-knob"></div>
+  <div id="portrait-warning">
+    <svg viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+    <h2>Rotate your phone</h2>
+    <p style="color:#B6A6D8;">Gamepad mode requires landscape orientation.</p>
   </div>
-  <div class="v-btn" id="btn-run">RUN</div>
-  <div class="v-btn" id="btn-jump">JUMP</div>
+  
+  <div id="gp-hud">
+    <button id="btn-gp-disc" class="btn secondary" onclick="disconnectGamepad()">Disconnect</button>
+    <div id="gp-player-tag"><div class="gp-color-dot" id="gp-color"></div> <span id="gp-name">P1</span></div>
+  </div>
+
+  <div class="tc-half" id="tc-left">
+    <div class="v-stick-zone" id="joystick">
+      <div class="v-stick-bg"></div>
+      <div class="v-stick-knob" id="joy-knob"></div>
+    </div>
+  </div>
+  
+  <div class="tc-half" id="tc-right">
+    <div class="v-btn" id="btn-run">RUN</div>
+    <div class="v-btn" id="btn-jump">JUMP</div>
+  </div>
 </div>
 
 <div class="overlay" id="ui-layer">
@@ -183,7 +223,7 @@
     <h2>Online Multiplayer</h2>
     <button class="btn primary" id="btn-host" onclick="hostGame()">Host Public Room</button>
     <div style="border-top:1px solid var(--edge); margin:10px 0;"></div>
-    <input type="text" id="room-code" placeholder="ENTER ROOM CODE" maxlength="4">
+    <input type="text" inputmode="text" id="room-code" placeholder="ENTER ROOM CODE" maxlength="4" oninput="this.value = this.value.toUpperCase()">
     <button class="btn primary" id="btn-join" onclick="joinGame()">Join Room</button>
     <p id="mp-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
@@ -220,7 +260,7 @@
   <div class="panel view" id="v-gamepad" style="display:none;">
     <h2>Virtual Controller</h2>
     <p style="font-size:14px; color:var(--ink-dim); text-align:left;">Enter the room code displayed on the host's screen to use your phone as a controller.</p>
-    <input type="text" id="gamepad-code" placeholder="ROOM CODE" maxlength="4">
+    <input type="text" inputmode="text" id="gamepad-code" placeholder="ROOM CODE" maxlength="4" oninput="this.value = this.value.toUpperCase()">
     <button class="btn primary" id="btn-connect-gp" onclick="connectGamepad()">Connect</button>
     <p id="gp-status" style="color:var(--hot); font-weight:bold; margin:0; font-size:14px;"></p>
     <button class="btn secondary" onclick="nav('v-main')">Back</button>
@@ -270,17 +310,6 @@
     <button class="btn secondary" style="margin-top:10px;" onclick="saveSettings(); nav('v-main')">Save & Back</button>
   </div>
 
-  <!-- View: Info -->
-  <div class="panel view" id="v-htp" style="display:none;">
-    <h2>How to Play</h2>
-    <p style="font-size:14px; text-align:left; color:var(--ink-dim);">
-      <b>Objective:</b> Don't be holding the bomb when the fuse runs out.<br><br>
-      <b>Tagging:</b> Run into another player to pass the bomb. The tagged player gets a brief immunity shield.<br><br>
-      <b>Controls:</b> Use Keyboard or on-screen Touch controls. Sprinting makes you faster but harder to stop.
-    </p>
-    <button class="btn secondary" onclick="nav('v-main')">Back</button>
-  </div>
-
   <!-- View: Pause -->
   <div class="panel view" id="v-pause" style="display:none;">
     <h2>Paused</h2>
@@ -292,7 +321,7 @@
   <div class="panel view" id="v-end" style="display:none;">
     <h2 id="end-title">Game Over</h2>
     <p id="end-desc" style="color:var(--ink-dim);"></p>
-    <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; font-size:14px;" id="end-stats"></div>
+    <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; font-size:14px; text-align:left;" id="end-stats"></div>
     <button class="btn primary" onclick="nav('v-main')">Main Menu</button>
   </div>
 </div>
@@ -300,6 +329,9 @@
 <script>
 (() => {
   "use strict";
+
+  // Haptic feedback helper
+  const vibe = (ms) => { try { if(navigator.vibrate) navigator.vibrate(ms); } catch(e){} };
 
   let CFG = { mus: 0.5, sfx: 0.8, shake: true, keys: { L:'a', R:'d', J:'w', S:'shift' }, highscore: 0 };
   try { const s = localStorage.getItem('bombtag_cfg'); if(s) CFG = {...CFG, ...JSON.parse(s)}; } catch(e){}
@@ -444,8 +476,7 @@
 
   const keys = Object.create(null);
   const touchState = { L:false, R:false, run:false, jump:false, drop:false };
-  let usingTouch = false;
-  let remoteInput = null; // reserved for a future remote-input source; currently always inert
+  let remoteInput = null; 
 
   addEventListener('keydown', e => {
     SND.wake(); const k = e.key.toLowerCase();
@@ -464,29 +495,31 @@
   addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
   addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
-  const tc = document.getElementById('touch-controls');
+  // Mobile Controller Logic
+  const tcLeft = document.getElementById('tc-left');
+  const tcRight = document.getElementById('tc-right');
+  const joystick = document.getElementById('joystick');
   const knob = document.getElementById('joy-knob');
   let joyID = null, joyOrigin = {x:0, y:0};
 
-  function enableTouch() { if(!usingTouch && !isGamepadMode && matchMedia('(pointer: coarse)').matches){ usingTouch=true; tc.style.display='block'; } SND.wake(); }
-  addEventListener('touchstart', enableTouch, {once:true});
-
-  tc.addEventListener('touchstart', e => {
+  // Floating Joystick
+  tcLeft.addEventListener('touchstart', e => {
     e.preventDefault();
     for(let i=0; i<e.changedTouches.length; i++){
       const t = e.changedTouches[i];
-      if (t.target.id === 'btn-jump') touchState.jump = true;
-      else if (t.target.id === 'btn-run') touchState.run = true;
-      else if (t.target.closest('#joystick') && joyID === null) {
+      if (joyID === null) {
         joyID = t.identifier;
-        const rect = document.getElementById('joystick').getBoundingClientRect();
-        joyOrigin = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 }; 
+        joyOrigin = { x: t.clientX, y: t.clientY };
+        joystick.style.left = t.clientX + 'px';
+        joystick.style.top = t.clientY + 'px';
+        joystick.style.opacity = '1';
         updateJoy(t.clientX, t.clientY);
+        vibe(10);
       }
     }
   }, {passive:false});
 
-  tc.addEventListener('touchmove', e => {
+  tcLeft.addEventListener('touchmove', e => {
     e.preventDefault();
     for(let i=0; i<e.changedTouches.length; i++){
       const t = e.changedTouches[i];
@@ -494,14 +527,13 @@
     }
   }, {passive:false});
 
-  tc.addEventListener('touchend', e => {
+  tcLeft.addEventListener('touchend', e => {
     e.preventDefault();
     for(let i=0; i<e.changedTouches.length; i++){
       const t = e.changedTouches[i];
-      if (t.target.id === 'btn-jump') touchState.jump = false;
-      else if (t.target.id === 'btn-run') touchState.run = false;
-      else if (t.identifier === joyID) {
+      if (t.identifier === joyID) {
         joyID = null; knob.style.transform = `translate(0px, 0px)`;
+        joystick.style.opacity = '0';
         touchState.L = false; touchState.R = false; touchState.drop = false;
       }
     }
@@ -510,18 +542,40 @@
   function updateJoy(x, y) {
     let dx = x - joyOrigin.x, dy = y - joyOrigin.y;
     const dist = Math.hypot(dx, dy);
-    if(dist > 40) { dx = (dx/dist)*40; dy = (dy/dist)*40; } 
+    if(dist > 45) { dx = (dx/dist)*45; dy = (dy/dist)*45; } 
     knob.style.transform = `translate(${dx}px, ${dy}px)`;
     touchState.L = dx < -15; touchState.R = dx > 15; touchState.drop = dy > 25;
   }
 
+  // Action Buttons
+  tcRight.addEventListener('touchstart', e => {
+    e.preventDefault();
+    for(let i=0; i<e.changedTouches.length; i++){
+      const t = e.changedTouches[i];
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      if(el && el.id === 'btn-jump') { touchState.jump = true; el.classList.add('active'); vibe(15); }
+      if(el && el.id === 'btn-run') { touchState.run = true; el.classList.add('active'); vibe(15); }
+    }
+  }, {passive:false});
+  
+  tcRight.addEventListener('touchmove', e => {
+    e.preventDefault(); // prevent scroll
+  }, {passive:false});
+
+  tcRight.addEventListener('touchend', e => {
+    e.preventDefault();
+    document.getElementById('btn-jump').classList.remove('active');
+    document.getElementById('btn-run').classList.remove('active');
+    touchState.jump = false; touchState.run = false;
+  });
+
   function getLocalInput() {
     const kb = {
-      L: keys[CFG.keys.L] || keys['arrowleft'] || touchState.L,
-      R: keys[CFG.keys.R] || keys['arrowright'] || touchState.R,
-      run: keys[CFG.keys.S] || touchState.run,
-      jump: keys[CFG.keys.J] || keys['arrowup'] || keys[' '] || touchState.jump,
-      drop: keys['s'] || keys['arrowdown'] || touchState.drop
+      L: keys[CFG.keys.L] || keys['arrowleft'],
+      R: keys[CFG.keys.R] || keys['arrowright'],
+      run: keys[CFG.keys.S],
+      jump: keys[CFG.keys.J] || keys['arrowup'] || keys[' '],
+      drop: keys['s'] || keys['arrowdown']
     };
     if (remoteInput) return { L: kb.L || remoteInput.L, R: kb.R || remoteInput.R, run: kb.run || remoteInput.run, jump: kb.jump || remoteInput.jump, drop: kb.drop || remoteInput.drop };
     return kb;
@@ -573,7 +627,6 @@
   }
 
   function resetGame() {
-    // Dynamic settings lookup depending on mode
     const mapId = partyMode ? 'party-set-map' : 'set-map';
     const diffId = partyMode ? 'party-set-diff' : 'set-diff';
     
@@ -587,18 +640,11 @@
         const useBots = document.getElementById('party-use-bots').checked;
         ents.push(spawn(0, spawns[0][0], spawns[0][1], false, myColorIdx));
         for(let i=1; i<4; i++){
-          if (gamepadSlots[i]) {
-            ents.push(spawn(i, spawns[i][0], spawns[i][1], false, i));
-          } else if (useBots) {
-            ents.push(spawn(i, spawns[i][0], spawns[i][1], true, i));
-          } else {
-            let e = spawn(i, spawns[i][0], spawns[i][1], false, i);
-            e.alive = false; 
-            ents.push(e);
-          }
+          if (gamepadSlots[i]) { ents.push(spawn(i, spawns[i][0], spawns[i][1], false, i)); }
+          else if (useBots) { ents.push(spawn(i, spawns[i][0], spawns[i][1], true, i)); } 
+          else { let e = spawn(i, spawns[i][0], spawns[i][1], false, i); e.alive = false; ents.push(e); }
         }
       } else {
-        // Online MP: Only spawn active connections
         const active = [0];
         for(let i=1; i<4; i++){ if(hostConnections.some(c => c.index === i) || (isHost && gamepadSlots[i])) active.push(i); }
         for(let i=0; i<4; i++){
@@ -608,7 +654,6 @@
         if(isHost) { ents.forEach(e => { if(!active.includes(e.i)) e.alive = false; }); }
       }
     } else {
-      // Single Player
       ents.push(spawn(0, spawns[0][0], spawns[0][1], false, myColorIdx));
       const botColors = [0,1,2,3].filter(c => c !== myColorIdx);
       for(let i=1; i<4; i++) ents.push(spawn(i, spawns[i][0], spawns[i][1], true, botColors[i-1]));
@@ -700,9 +745,7 @@
 
     if (isNetwork && !isHost && e.i !== myIndex && !isGamepadMode) {
       e.renderX += (e.x - e.renderX) * (dt * 15); e.renderY += (e.y - e.renderY) * (dt * 15);
-    } else {
-      e.renderX = e.x; e.renderY = e.y;
-    }
+    } else { e.renderX = e.x; e.renderY = e.y; }
   }
 
   function puff(x, y, n, color, spread){ for(let k=0; k<n; k++) parts.push({ x, y, vx:(Math.random()-.5)*spread, vy:-Math.random()*spread*.6, life:.35+Math.random()*.4, t:0, r:2+Math.random()*3, c:color, g:120 }); }
@@ -728,7 +771,6 @@
       if (!e.alive) continue;
       if (mode === 'play') {
         e.passCd = Math.max(0, e.passCd - dt); e.immuneCd = Math.max(0, e.immuneCd - dt);
-        
         if (!isNetwork) {
           if (e.i === 0) applyInput(e, getLocalInput());
           else if (e.isAI) { e.think -= dt; if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); } }
@@ -738,9 +780,7 @@
           else if (gamepadSlots[e.i]) applyInput(e, gamepadInputBySlot[e.i]);
           else if (!partyMode && hostConnections.find(c => c.index === e.i)) applyInput(e, networkInputs[e.i]);
           else if (e.isAI) { e.think -= dt; if (e.think <= 0) { e.think = diffSetting === 2 ? .05+Math.random()*.05 : diffSetting === 0 ? .2+Math.random()*.2 : .08+Math.random()*.1; decideAI(e); } }
-        } else {
-          e.wantJump = false;
-        }
+        } else { e.wantJump = false; }
       } else { e.wantDir = 0; e.wantJump = false; }
       stepBody(e, dt);
     }
@@ -785,7 +825,6 @@
       }
     }
 
-    // Only broadcast state if it's Online MP (not Local Party)
     if (isNetwork && isHost && !partyMode && performance.now() - lastSyncTime > 40) {
       lastSyncTime = performance.now();
       const state = {
@@ -840,8 +879,7 @@
             conn.send({ type:'gp-welcome', slot: data.slot, color: PALETTE[data.slot % PALETTE.length].body, name: PALETTE[data.slot % PALETTE.length].name });
             updatePartyLobby();
           } else {
-            conn.send({ type:'gp-taken' });
-            conn.send({ type:'gp-slots', slots: slotInfo() });
+            conn.send({ type:'gp-taken' }); conn.send({ type:'gp-slots', slots: slotInfo() });
           }
         }
         if (data.type === 'ctrl-input') {
@@ -858,7 +896,7 @@
   window.updatePartyLobby = () => {
     if (!partyMode) return;
     const useBots = document.getElementById('party-use-bots').checked;
-    let humanCount = 1; // P1 is always active (Keyboard or Gamepad)
+    let humanCount = 1;
 
     const el0 = document.getElementById('p-slot-0');
     if(gamepadSlots[0]) el0.innerHTML = `<span style="color:var(--cyan)">🟢 P1: Gamepad Connected</span>`;
@@ -866,34 +904,27 @@
 
     for(let i=1; i<4; i++){
       const el = document.getElementById(`p-slot-${i}`);
-      if(gamepadSlots[i]) {
-        el.innerHTML = `<span style="color:var(--cyan)">🟢 P${i+1}: Gamepad Connected</span>`;
-        humanCount++;
-      } else {
-        el.innerHTML = `⚪ P${i+1}: ${useBots ? 'AI Bot' : 'Empty'} (Open for Gamepad)`;
-      }
+      if(gamepadSlots[i]) { el.innerHTML = `<span style="color:var(--cyan)">🟢 P${i+1}: Gamepad Connected</span>`; humanCount++; } 
+      else { el.innerHTML = `⚪ P${i+1}: ${useBots ? 'AI Bot' : 'Empty'} (Open for Phone)`; }
     }
     
     const btnStart = document.getElementById('btn-start-party');
-    if (!useBots && humanCount < 2) {
-      btnStart.disabled = true; btnStart.innerText = "Need more players...";
-    } else {
-      btnStart.disabled = false; btnStart.innerText = "Start Match";
-    }
+    if (!useBots && humanCount < 2) { btnStart.disabled = true; btnStart.innerText = "Need more players..."; } 
+    else { btnStart.disabled = false; btnStart.innerText = "Start Match"; }
     broadcastSlotsToPending();
   };
 
   window.hostGame = () => {
     if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-      document.getElementById('mp-status').innerText = "Error: HTTPS (SSL) is required to host games on a deployed site."; return;
+      document.getElementById('mp-status').innerText = "Error: HTTPS required."; return;
     }
     SND.wake(); partyMode = false;
     const btn = document.getElementById('btn-host'); const status = document.getElementById('mp-status');
-    btn.disabled = true; status.innerText = "Connecting to PeerJS...";
+    btn.disabled = true; status.innerText = "Connecting...";
     roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
     
     let connectTimeout = setTimeout(() => {
-      if (!isHost) { status.innerText = "Timeout: Blocked by Adblock/Firewall?"; btn.disabled = false; if(peer) peer.destroy(); }
+      if (!isHost) { status.innerText = "Timeout: Blocked?"; btn.disabled = false; if(peer) peer.destroy(); }
     }, 6000);
 
     try { peer = createPeer(roomCode); } 
@@ -907,10 +938,7 @@
       status.innerText = ""; nav('v-lobby'); updateLobbyText();
     });
     
-    peer.on('error', err => {
-      clearTimeout(connectTimeout); console.error(err);
-      status.innerText = "Err: " + (err.type || "Network Blocked"); btn.disabled = false;
-    });
+    peer.on('error', err => { clearTimeout(connectTimeout); status.innerText = "Err: " + (err.type || "Network Blocked"); btn.disabled = false; });
 
     peer.on('connection', conn => {
       conn.on('data', data => {
@@ -932,9 +960,7 @@
             pendingGpConns.delete(conn);
             conn.send({ type:'gp-welcome', slot: data.slot, color: PALETTE[data.slot % PALETTE.length].body, name: PALETTE[data.slot % PALETTE.length].name });
             updateLobbyText();
-          } else {
-            conn.send({ type:'gp-taken' }); conn.send({ type:'gp-slots', slots: slotInfo() });
-          }
+          } else { conn.send({ type:'gp-taken' }); conn.send({ type:'gp-slots', slots: slotInfo() }); }
         }
         if (data.type === 'ctrl-input') { for (const k in gamepadSlots) { if (gamepadSlots[k] === conn) gamepadInputBySlot[k] = data.input; } }
         if (data.type === 'input') { networkInputs[conn.index] = data.input; }
@@ -969,12 +995,12 @@
         if (data.type === 'sync') { syncClient(data.state); }
         if (data.type === 'error') { showNotice("Room full or in progress."); disconnectMP(); }
       });
-      hostConn.on('error', err => { document.getElementById('mp-status').innerText = "Host connection lost."; document.getElementById('btn-join').disabled = false; });
+      hostConn.on('error', err => { document.getElementById('mp-status').innerText = "Connection lost."; document.getElementById('btn-join').disabled = false; });
       hostConn.on('close', () => { showNotice("Host disconnected."); disconnectMP(); });
     });
     peer.on('error', err => {
-      let errorMsg = "Connection failed."; if (err.type === 'peer-unavailable') errorMsg = "Room not found.";
-      document.getElementById('mp-status').innerText = errorMsg; document.getElementById('btn-join').disabled = false;
+      document.getElementById('mp-status').innerText = err.type === 'peer-unavailable' ? "Room not found." : "Connection failed."; 
+      document.getElementById('btn-join').disabled = false;
     });
   };
 
@@ -992,7 +1018,7 @@
         if (data.type === 'gp-welcome') enterControllerView(data);
       });
       gamepadConn.on('close', () => { showNotice("Host disconnected."); disconnectGamepad(); });
-      gamepadConn.on('error', () => { document.getElementById('gp-status').innerText = "Host connection lost."; document.getElementById('btn-connect-gp').disabled = false; });
+      gamepadConn.on('error', () => { document.getElementById('gp-status').innerText = "Connection lost."; document.getElementById('btn-connect-gp').disabled = false; });
     });
     peer.on('error', err => { document.getElementById('gp-status').innerText = "Room not found."; document.getElementById('btn-connect-gp').disabled = false; });
   };
@@ -1010,21 +1036,44 @@
     });
   }
 
-  function enterControllerView(data) {
+  async function enterControllerView(data) {
     mySlot = data.slot; isGamepadMode = true; lastTouchStateStr = "";
-    document.getElementById('btn-gp-disc').innerText = `Disconnect (P${data.slot + 1})`;
+    document.body.classList.add('is-gamepad');
+    document.getElementById('btn-gp-disc').innerText = `Disconnect`;
+    document.getElementById('gp-name').innerText = `P${data.slot + 1} - ${data.name}`;
+    document.getElementById('gp-color').style.background = data.color;
+    
+    // Theming the controller background
+    document.getElementById('touch-controls').style.background = `radial-gradient(circle at center, ${data.color}22, #05020A)`;
+
     document.getElementById('ui-layer').classList.add('hidden');
-    document.getElementById('touch-controls').style.display = 'block'; document.getElementById('touch-controls').style.pointerEvents = 'auto';
-    document.getElementById('btn-gp-disc').style.display = 'block';
-    document.getElementById('stage').style.display = 'none'; document.body.style.background = '#000';
+    document.getElementById('touch-controls').style.display = 'block'; 
+    document.getElementById('touch-controls').style.pointerEvents = 'auto';
+    document.getElementById('stage').style.display = 'none';
+
+    // Lock orientation & Fullscreen
+    try {
+      if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+      if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+    } catch(e) { console.log("Orientation lock not supported or denied."); }
   }
 
-  window.disconnectGamepad = () => {
+  window.disconnectGamepad = async () => {
     if(peer) peer.destroy();
     isGamepadMode = false; gamepadConn = null; mySlot = null; lastTouchStateStr = "";
-    document.getElementById('touch-controls').style.display = 'none'; document.getElementById('touch-controls').style.pointerEvents = 'none'; document.getElementById('btn-gp-disc').style.display = 'none';
-    document.getElementById('stage').style.display = 'block'; document.body.style.background = 'var(--page)';
+    document.body.classList.remove('is-gamepad');
+    
+    document.getElementById('touch-controls').style.display = 'none'; 
+    document.getElementById('touch-controls').style.pointerEvents = 'none';
+    document.getElementById('stage').style.display = 'block'; 
+    document.body.style.background = 'var(--page)';
     document.getElementById('btn-connect-gp').disabled = false; nav('v-main');
+    
+    // Unlock orientation & Exit Fullscreen
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    } catch(e) {}
   }
 
   function slotInfo() {
@@ -1045,7 +1094,7 @@
   function updateLobbyText() {
     if(partyMode) return; 
     const gpCount = Object.values(gamepadSlots).filter(Boolean).length;
-    document.getElementById('lobby-players').innerText = `Players: ${hostConnections.length + 1} / 4` + (gpCount ? ` · 🎮 ${gpCount} phone controller${gpCount > 1 ? 's' : ''} linked` : '');
+    document.getElementById('lobby-players').innerText = `Players: ${hostConnections.length + 1} / 4` + (gpCount ? ` · 🎮 ${gpCount} phone${gpCount > 1 ? 's' : ''} linked` : '');
     broadcastSlotsToPending();
   }
 
@@ -1060,12 +1109,8 @@
        const target = s.ents[i];
        const drift = Math.hypot(ents[i].x - target.x, ents[i].y - target.y);
        if (i === myIndex) {
-         // Trust local prediction for our own avatar so it stays smooth under normal
-         // latency; only snap to the host's copy if we've drifted a lot (e.g. a stall
-         // or dropped packets). Elimination is still host-authoritative.
          if (drift > 140) { ents[i].x = target.x; ents[i].y = target.y; ents[i].renderX = target.x; ents[i].renderY = target.y; ents[i].vx = target.vx; ents[i].vy = target.vy; }
-         ents[i].alive = target.alive;
-         continue;
+         ents[i].alive = target.alive; continue;
        }
        if(drift > 100) { ents[i].x = target.x; ents[i].y = target.y; ents[i].renderX = target.x; ents[i].renderY = target.y; }
        else { ents[i].x = target.x; ents[i].y = target.y; }
@@ -1111,7 +1156,7 @@
     document.getElementById('end-title').innerText = winner ? (won || partyMode ? `${winner.name} Wins!` : "Victory!") : "Draw!";
     document.getElementById('end-desc').innerText = `Survived ${round} rounds.`;
     
-    const statsHTML = ents.map(e => `<div><b style="color:${e.body}">${e.name}</b>: Tags: ${matchStats.tags[e.i]} | Bomb Time: ${matchStats.heldTime[e.i].toFixed(1)}s</div>`).join('');
+    const statsHTML = ents.map(e => `<div><b style="color:${e.body}">${e.name}</b>: Tags: ${matchStats.tags[e.i]} | Held Bomb: ${matchStats.heldTime[e.i].toFixed(1)}s</div>`).join('');
     document.getElementById('end-stats').innerHTML = statsHTML;
     
     nav('v-end'); SND.sizzleOff(); SND.end(won); if(!isNetwork) updateScore(round);
